@@ -247,8 +247,7 @@ def download_sample_metadata(args):
     sample_records = {}
     gfout = None
     if clsnapconf.CACHE_SAMPLE_METADTA:
-        parts = clsnapconf.SERVICE_URL.split('/')
-        cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % parts[-1])
+        cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % args.datasrc)
         if os.path.exists(cache_file):
             with gzip.open(cache_file,"r") as gfin:
                 for line in gfin:
@@ -259,7 +258,7 @@ def download_sample_metadata(args):
             return sample_records
         else:
             gfout = gzip.open(cache_file,"w")
-    response = urllib2.urlopen("%s/samples?all=1" % (clsnapconf.SERVICE_URL))
+    response = urllib2.urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
     all_records = response.read()
     all_records = all_records.split('\n')
     for line in all_records:
@@ -280,7 +279,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
         results['shared']={}
     first = True
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
-        sIT = iterator_map[local](query_param_string, endpoint)
+        sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
         group = None
         if group_idx < len(groups):
             group = groups[group_idx]
@@ -359,6 +358,8 @@ if __name__ == '__main__':
     parser.add_argument('--local', action='store_const', const=True, default=False, help='if running Snaptron modeules locally (skipping WSI)')
     parser.add_argument('--noheader', action='store_const', const=True, default=False, help='turn off printing header in ouput')
     
+    parser.add_argument('--datasrc', metavar='data_source_namd', type=str, default=clsnapconf.DS_SRAV2, help='data source instance of Snaptron to use, check clsnapconf.py for list')
+    
 
     #returned format (UCSC, and/or subselection of fields) option?
     #intersection or union of intervals option?
@@ -368,7 +369,7 @@ if __name__ == '__main__':
         sys.stderr.write("Error: no discernible arguments passed in, exiting\n")
         parser.print_help()
         sys.exit(-1)
-    if args.function == TISSUE_SPECIFICITY_FUNC and 'gtex' not in clsnapconf.SERVICE_URL:
+    if args.function == TISSUE_SPECIFICITY_FUNC and 'gtex' not in args.datasrc:
         sys.stderr.write("Error: attempting to do tissue specificity (ts) on a non-GTEx Snaptron instance. Please change the SERVICE_URL setting in clsnapconf.py file to be the GTEx Snaptron instance before running this function; exiting\n")
         sys.exit(-1)
     main(args)

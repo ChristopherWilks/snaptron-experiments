@@ -10,8 +10,8 @@ ENDPOINTS={'snaptron':'snaptron.py','sample':'snample.py','annotation':'snannota
 
 class SnaptronIteratorLocal(SnaptronIterator):
 
-    def __init__(self,query_param_string,endpoint):
-        SnaptronIterator.__init__(self,query_param_string,endpoint) 
+    def __init__(self,query_param_string,instance,endpoint):
+        SnaptronIterator.__init__(self,query_param_string,instance,endpoint) 
         
         self.construct_query_string(query_param_string,endpoint)
         self.execute_query_string(self.cmd)

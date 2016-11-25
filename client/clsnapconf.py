@@ -1,7 +1,9 @@
 #!/usr/bin/env python2.7
-#SERVICE_URL='http://snaptron.cs.jhu.edu/srav2'
-SERVICE_URL='http://snaptron.cs.jhu.edu/srav1'
-#SERVICE_URL='http://snaptron.cs.jhu.edu/gtex'
+DS_SRAV2='srav2'
+DS_SRAV1='srav1'
+DS_GTEX='gtex'
+DS_TCGA='tcga'
+SERVICE_URL='http://snaptron.cs.jhu.edu'
 BUFFER_SIZE_BYTES=1024*1024
 CACHE_SAMPLE_METADTA=True
 #TODO use python tmp

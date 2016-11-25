@@ -9,8 +9,8 @@ ENDPOINTS={'snaptron':'snaptron','sample':'sample','annotation':'annotation','de
 
 class SnaptronIteratorHTTP(SnaptronIterator):
 
-    def __init__(self,query_param_string,endpoint):
-        SnaptronIterator.__init__(self,query_param_string,endpoint) 
+    def __init__(self,query_param_string,instance,endpoint):
+        SnaptronIterator.__init__(self,query_param_string,instance,endpoint) 
 
         self.SERVICE_URL=clsnapconf.SERVICE_URL
         self.ENDPOINTS=ENDPOINTS
@@ -18,7 +18,7 @@ class SnaptronIteratorHTTP(SnaptronIterator):
         self.execute_query_string()
 
     def construct_query_string(self):
-        self.query_string = "%s/%s?%s" % (self.SERVICE_URL,self.ENDPOINTS[self.endpoint],self.query_param_string)
+        self.query_string = "%s/%s/%s?%s" % (self.SERVICE_URL,self.instance,self.ENDPOINTS[self.endpoint],self.query_param_string)
         return self.query_string
 
     def execute_query_string(self):
@@ -35,6 +35,6 @@ class SnaptronIteratorHTTP(SnaptronIterator):
             raise ir
 
 if __name__ == '__main__':
-    it = SnaptronIteratorHTTP('regions=chr1:1-100000&rfilter=samples_count>:5','snaptron')
+    it = SnaptronIteratorHTTP('regions=chr1:1-100000&rfilter=samples_count>:5', 'srav1', 'snaptron')
     for r in it:
         print("%s" % r)

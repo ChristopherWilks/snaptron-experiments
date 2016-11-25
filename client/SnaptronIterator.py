@@ -6,9 +6,10 @@ import clsnapconf
 
 class SnaptronIterator():
 
-    def __init__(self,query_param_string,endpoint):
+    def __init__(self,query_param_string,instance,endpoint):
         self.buffer_size = clsnapconf.BUFFER_SIZE_BYTES
         self.query_param_string = query_param_string
+        self.instance = instance
         self.endpoint = endpoint
 
         self.idx = -1
