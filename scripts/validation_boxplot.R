@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 infile <- file("stdin")
 m<-read.delim(infile)
-mx<-max(subset(m,group == 'non_validated', select=c(shared_sample_counts)))
-m$group <- factor(m$group,labels=c('Did not validate', 'Validated'))
+mx<-max(subset(m,validation == 'validated', select=c(shared_sample_counts)))
+m$group <- factor(m$validation,labels=c('Did not validate', 'Validated'))
 
 pdf("./shared_sample_counts.pdf")
 boxplot(m$shared_sample_counts ~ m$group, ylab="Shared-sample count")
