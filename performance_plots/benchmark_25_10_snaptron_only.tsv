@@ -1,0 +1,61 @@
+Query.Size	Query.Time	Query.Type
+25	2.88108	Snaptron Tabix Interval
+25	2.929096	Snaptron SQLite Interval
+25	10.981371	Snaptron SQLite-NoIndex Interval
+25	1.502778	Snaptron SQLite Interval w/ 1 Constraint
+25	9.223923	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+25	2.880592	Snaptron Tabix Interval w/ 1 Constraint
+50	3.562459	Snaptron Tabix Interval
+50	4.28057	Snaptron SQLite Interval
+50	11.604239	Snaptron SQLite-NoIndex Interval
+50	1.743517	Snaptron SQLite Interval w/ 1 Constraint
+50	9.341583	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+50	3.464172	Snaptron Tabix Interval w/ 1 Constraint
+75	3.810035	Snaptron Tabix Interval
+75	4.120484	Snaptron SQLite Interval
+75	11.72315	Snaptron SQLite-NoIndex Interval
+75	1.800234	Snaptron SQLite Interval w/ 1 Constraint
+75	9.324822	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+75	3.935076	Snaptron Tabix Interval w/ 1 Constraint
+100	4.527952	Snaptron Tabix Interval
+100	4.97111	Snaptron SQLite Interval
+100	12.620415	Snaptron SQLite-NoIndex Interval
+100	1.893093	Snaptron SQLite Interval w/ 1 Constraint
+100	9.535352	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+100	4.485786	Snaptron Tabix Interval w/ 1 Constraint
+125	5.615586	Snaptron Tabix Interval
+125	5.76548	Snaptron SQLite Interval
+125	13.705459	Snaptron SQLite-NoIndex Interval
+125	2.207933	Snaptron SQLite Interval w/ 1 Constraint
+125	9.628688	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+125	5.739339	Snaptron Tabix Interval w/ 1 Constraint
+150	5.7644	Snaptron Tabix Interval
+150	6.793615	Snaptron SQLite Interval
+150	13.696359	Snaptron SQLite-NoIndex Interval
+150	2.241755	Snaptron SQLite Interval w/ 1 Constraint
+150	9.720335	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+150	5.909873	Snaptron Tabix Interval w/ 1 Constraint
+175	6.723962	Snaptron Tabix Interval
+175	6.921301	Snaptron SQLite Interval
+175	14.781449	Snaptron SQLite-NoIndex Interval
+175	2.211783	Snaptron SQLite Interval w/ 1 Constraint
+175	9.888012	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+175	6.785263	Snaptron Tabix Interval w/ 1 Constraint
+200	7.613223	Snaptron Tabix Interval
+200	7.513123	Snaptron SQLite Interval
+200	15.266922	Snaptron SQLite-NoIndex Interval
+200	2.557407	Snaptron SQLite Interval w/ 1 Constraint
+200	9.889964	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+200	7.496451	Snaptron Tabix Interval w/ 1 Constraint
+225	7.998546	Snaptron Tabix Interval
+225	8.472968	Snaptron SQLite Interval
+225	16.239039	Snaptron SQLite-NoIndex Interval
+225	2.737427	Snaptron SQLite Interval w/ 1 Constraint
+225	10.004725	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+225	8.637205	Snaptron Tabix Interval w/ 1 Constraint
+250	9.153133	Snaptron Tabix Interval
+250	9.492771	Snaptron SQLite Interval
+250	16.587331	Snaptron SQLite-NoIndex Interval
+250	2.931137	Snaptron SQLite Interval w/ 1 Constraint
+250	10.175847	Snaptron SQLite-NoIndex Interval w/ 1 Constraint
+250	8.928992	Snaptron Tabix Interval w/ 1 Constraint
