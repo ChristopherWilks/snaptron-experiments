@@ -98,7 +98,8 @@ def junction_inclusion_ratio_bp(args, results, group_list, sample_records):
     missing_sample_ids = set()
     counter = 0
     if not args.noheader:
-        sys.stdout.write("analysis_score\t%s jir/a/b raw counts\t%s jir/a/b raw counts\tsample metadata\n" % (g1,g2))
+        sheader = sample_records["header"]
+        sys.stdout.write("analysis_score\t%s jir/a/b raw counts\t%s jir/a/b raw counts\t%s\n" % (g1,g2,sheader))
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
         counter += 1
         if args.limit > -1 and counter > args.limit:
@@ -121,15 +122,12 @@ def junction_inclusion_ratio(args, results, group_list, sample_records):
             sample_stats[sample][group_a]=0
         if group_b not in sample_stats[sample]:
             sample_stats[sample][group_b]=0
-        #numer = sample_stats[sample][group_b] - sample_stats[sample][group_a]
-        #denom = sample_stats[sample][group_b] + sample_stats[sample][group_a] + 1
-        #sample_scores[sample]=numer/float(denom)
         sample_scores[sample] = calc_jir(sample_stats[sample][group_a], sample_stats[sample][group_b])
-
     missing_sample_ids = set()
     counter = 0
     if not args.noheader:
-        sys.stdout.write("analysis_score\t%s raw count\t%s raw count\tsample metadata\n" % (group_a,group_b))
+        sheader = sample_records["header"]
+        sys.stdout.write("jir_score\t%s raw count\t%s raw count\t%s\n" % (group_a,group_b,sheader))
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
         counter += 1
         if args.limit > -1 and counter > args.limit:
@@ -250,10 +248,12 @@ def download_sample_metadata(args):
         cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % args.datasrc)
         if os.path.exists(cache_file):
             with gzip.open(cache_file,"r") as gfin:
-                for line in gfin:
+                for (i,line) in enumerate(gfin):
                     line = line.rstrip()
                     fields = line.split('\t')
                     sample_records[fields[0]]=line
+                    if i == 0:
+                        sample_records["header"]=line
             del sample_records['']
             return sample_records
         else:
@@ -261,9 +261,14 @@ def download_sample_metadata(args):
     response = urllib2.urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
     all_records = response.read()
     all_records = all_records.split('\n')
-    for line in all_records:
+    for (i,line) in enumerate(all_records):
         fields = line.split('\t')
         sample_records[fields[0]]=line
+        if i == 0:
+            #remove lucene index type chars from header
+            line = re.sub('_[itsf]\t','\t',line)
+            line = re.sub('_[itsf]$','',line)
+            sample_records["header"]=line
         if gfout is not None:
             gfout.write("%s\n" % (line))
     if gfout is not None:
