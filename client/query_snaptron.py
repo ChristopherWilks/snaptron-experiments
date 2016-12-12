@@ -15,7 +15,6 @@ from SnaptronIteratorLocal import SnaptronIteratorLocal
 GTEX_TISSUE_COL=65
 
 fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
-breakpoint_patt = re.compile(r'(^[^:]+-[^:]+$)|(^COSF\d+$)|(^\d+$)')
 def parse_query_argument(record, fieldnames, groups, header=True):
     endpoint = 'snaptron'
     query=[]
@@ -32,8 +31,6 @@ def parse_query_argument(record, fieldnames, groups, header=True):
                 if field in fmap:
                     mapped_field = fmap[field]
                 query.append("%s=%s" % (mapped_field,record[field]))
-            if field == 'region' and breakpoint_patt.search(record[field]) is not None:
-                endpoint = 'breakpoint'
     if not header:
         query.append("header=0")
     return (query,endpoint)
@@ -71,46 +68,6 @@ def calc_jir(a, b):
     numer = b - a
     denom = a + b + 1
     return numer/float(denom)
-
-
-def junction_inclusion_ratio_bp(args, results, group_list, sample_records):
-    sample_stats = results['samples']
-    (group_a_g1, group_a_g2, group_b_g1, group_b_g2) = group_list
-    group_a = group_a_g1[:-2]
-    group_b = group_b_g1[:-2]
-    g1 = group_a_g1[-1:]
-    g2 = group_a_g2[-1:]
-    
-    sample_scores = {}
-    for sample in sample_stats:
-        if group_a_g1 not in sample_stats[sample]:
-            sample_stats[sample][group_a_g1]=0
-        if group_b_g1 not in sample_stats[sample]:
-            sample_stats[sample][group_b_g1]=0
-        if group_a_g2 not in sample_stats[sample]:
-            sample_stats[sample][group_a_g2]=0
-        if group_b_g2 not in sample_stats[sample]:
-            sample_stats[sample][group_b_g2]=0
-
-        sample_stats[sample][g1] = [calc_jir(sample_stats[sample][group_a_g1], sample_stats[sample][group_b_g1]), sample_stats[sample][group_a_g1], sample_stats[sample][group_b_g1]]
-        sample_stats[sample][g2] = [calc_jir(sample_stats[sample][group_a_g2], sample_stats[sample][group_b_g2]), sample_stats[sample][group_a_g2], sample_stats[sample][group_b_g2]]
-        sample_scores[sample] = min(sample_stats[sample][g1][0], sample_stats[sample][g2][0])
-
-    missing_sample_ids = set()
-    counter = 0
-    if not args.noheader:
-        sheader = sample_records["header"]
-        sys.stdout.write("analysis_score\t%s jir/a/b raw counts\t%s jir/a/b raw counts\t%s\n" % (g1,g2,sheader))
-    for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
-        counter += 1
-        if args.limit > -1 and counter > args.limit:
-            break
-        score = sample_scores[sample]
-        if sample not in sample_records:
-            missing_sample_ids.add(sample)
-            continue
-        sample_record = sample_records[sample]
-        sys.stdout.write("%s\t%s\t%s\t%s\n" % (str(score),":".join([str(x) for x in sample_stats[sample][g1]]),":".join([str(x) for x in sample_stats[sample][g2]]),sample_record))
 
 
 def junction_inclusion_ratio(args, results, group_list, sample_records):
@@ -313,12 +270,6 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
         for record in sIT:
             if function is not None:
                 function(args, results, record, group, out_fh=group_fh)
-            elif endpoint == 'breakpoint':
-                (region, contains, group_) = record.split('\t')
-                if region == 'region':
-                    continue
-                (query, _) = parse_query_argument({'region':region,'contains':contains,'group':group_}, ['region', 'contains', 'group'], groups, header=False)
-                results['queries'].append("&".join(query))
             else:
                 counter += 1
                 if args.limit > -1 and counter > args.limit:
@@ -337,7 +288,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
     return results
 
 
-compute_functions={JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),'jirbp':(count_samples_per_group,junction_inclusion_ratio_bp),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None)}
+compute_functions={JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None)}
 def main(args):
     #parse original set of queries
     (query_params_per_region, groups, endpoint) = parse_query_params(args)
@@ -345,16 +296,8 @@ def main(args):
     (count_function, summary_function) = compute_functions[args.function]
     #process original queries
     results = process_queries(args, query_params_per_region, groups, endpoint, function=count_function, local=args.local)
-    #print "results length %d" % len(results['samples'])
-    #we have to do a double process if doing a breakpoint query since we get the coordinates
-    #in the first query round and then query them in the second (here)
-    if endpoint == 'breakpoint':
-        #update original None functions with the JIR
-        (count_function, summary_function) = compute_functions['jirbp']
-        #now process the coordinates that came back from the first breakpoint query using the normal query + JIR
-        results = process_queries(args, results['queries'], groups, 'snaptron', function=count_function, local=args.local)
-    #if either the user wanted the JIR to start with on some coordinate groups OR they asked for a breakpoint, do the JIR now
-    if args.function or endpoint == 'breakpoint':
+    #if either the user wanted the JIR to start with on some coordinate groups, do the JIR now
+    if args.function:
         sample_records = {}
         if args.function != TRACK_EXONS_FUNC:
             sample_records = download_sample_metadata(args)
