@@ -233,13 +233,16 @@ def tissue_specificity(args, results, group_list, sample_records):
 
 def report_shared_sample_counts(args, results, group_list, sample_records):
     sys.stdout.write("group\tshared_sample_counts\n")
+    shared_group_count = 0
     for group in group_list:
         if group not in results['shared'] or len(results['shared'][group]) == 0:
             sys.stderr.write("No shared samples between splice junctions for %s, skipping\n" % (group))
             #sys.stdout.write("%s\t0\n" % (group))
             continue
         count = len(results['shared'][group])
+        shared_group_count+=1
         sys.stdout.write("%s\t%d\n" % (group, count))
+    sys.stderr.write("total groups with shared sample count:\t%d\n" % (shared_group_count))
 
 def download_sample_metadata(args):
     sample_records = {}
@@ -372,6 +375,7 @@ if __name__ == '__main__':
     #returned format (UCSC, and/or subselection of fields) option?
     #intersection or union of intervals option?
 
+
     args = parser.parse_args()
     if args.region is None and args.thresholds is None and args.filters is None and args.query_file is None:
         sys.stderr.write("Error: no discernible arguments passed in, exiting\n")
@@ -380,4 +384,6 @@ if __name__ == '__main__':
     if args.function == TISSUE_SPECIFICITY_FUNC and 'gtex' not in args.datasrc:
         sys.stderr.write("Error: attempting to do tissue specificity (ts) on a non-GTEx Snaptron instance. Please change the SERVICE_URL setting in clsnapconf.py file to be the GTEx Snaptron instance before running this function; exiting\n")
         sys.exit(-1)
+    if not os.path.exists(args.tmpdir):
+        os.mkdir(args.tmpdir)
     main(args)
