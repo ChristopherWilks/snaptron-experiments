@@ -46,7 +46,7 @@ def parse_command_line_args(args):
         if field in vars(args) and vars(args)[field] is not None:
             fieldnames.append(field)
     groups = []
-    (query,endpoint) = parse_query_argument(vars(args), fieldnames, groups, header=args.function is None and not args.noheader)
+    (query,endpoint) = parse_query_argument(vars(args), fieldnames, groups, header=args.function is not None or not args.noheader)
     return (["&".join(query)], groups, endpoint)
 
 
@@ -58,11 +58,12 @@ def parse_query_params(args):
     groups = []
     with open(args.query_file,"r") as cfin:
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
-        get_header = args.function is None and not args.noheader
+        get_header = args.function is not None or not args.noheader
         for (i,record) in enumerate(creader):
             (query, endpoint) = parse_query_argument(record, creader.fieldnames, groups, header=get_header)
             queries.append("&".join(query))
-            get_header = False
+            if args.function is None:
+                get_header = False
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
 
@@ -139,8 +140,12 @@ def junction_inclusion_ratio(args, results, group_list, sample_records):
         sample_record = sample_records[sample]
         sys.stdout.write("%s\t%d\t%d\t%s\n" % (str(score),sample_stats[sample][group_a],sample_stats[sample][group_b],sample_record))
 
-def track_exons(args, results, record, group):
+def track_exons(args, results, record, group, out_fh=None):
     exons = results['exons']
+    if out_fh is not None:
+        out_fh.write(record+"\n")
+    if 'snaptron_id' in record:
+        return
     fields = record.split('\t')
     snid = fields[clsnapconf.INTRON_ID_COL]
     for (type_,col) in {'start':clsnapconf.INTERVAL_START_COL,'end':clsnapconf.INTERVAL_END_COL}.iteritems():
@@ -182,8 +187,12 @@ SHARED_SAMPLE_COUNT_FUNC='shared'
 JIR_FUNC='jir'
 TRACK_EXONS_FUNC='exon'
 FUNCTION_TO_TYPE={TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared'}
-def count_samples_per_group(args, results, record, group):
+def count_samples_per_group(args, results, record, group, out_fh=None):
     sample_stats = results['samples']
+    if out_fh is not None:
+        out_fh.write(record+"\n")
+    if 'snaptron_id' in record:
+        return
     fields = record.split('\t')
     samples = fields[clsnapconf.SAMPLE_IDS_COL].split(',')
     sample_covs = fields[clsnapconf.SAMPLE_IDS_COL+1].split(',')
@@ -292,15 +301,18 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
         sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
         group = None
+        group_fh = None
         if group_idx < len(groups):
             group = groups[group_idx]
+            if not args.noraw:
+                group_fh = open("%s/%s.raw" % (args.tmpdir,group),"w")
         #assume we get a header in this case and don't count it against the args.limit
         counter = -1
         if args.noheader:
             counter = 0
         for record in sIT:
             if function is not None:
-                function(args, results, record, group)
+                function(args, results, record, group, out_fh=group_fh)
             elif endpoint == 'breakpoint':
                 (region, contains, group_) = record.split('\t')
                 if region == 'region':
@@ -319,6 +331,8 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
                 sys.stdout.write("%s%s\n" % (group_label, record))
         if group is not None and 'groups_seen' in results:
             results['groups_seen'].add(group)
+        if group_fh is not None:
+            group_fh.close()
         first = False
     return results
 
@@ -367,7 +381,8 @@ if __name__ == '__main__':
     
     
     parser.add_argument('--local', action='store_const', const=True, default=False, help='if running Snaptron modeules locally (skipping WSI)')
-    parser.add_argument('--noheader', action='store_const', const=True, default=False, help='turn off printing header in ouput')
+    parser.add_argument('--noraw', action='store_const', const=True, default=False, help='don\'t store output of WSI in tmpdir')
+    parser.add_argument('--noheader', action='store_const', const=True, default=False, help='turn off printing header in output')
     
     parser.add_argument('--datasrc', metavar='data_source_namd', type=str, default=clsnapconf.DS_SRAV2, help='data source instance of Snaptron to use, check clsnapconf.py for list')
     
