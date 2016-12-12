@@ -13,7 +13,7 @@ FIELD_ARGS={'region':['"chr#:start-end"',str,None,'either a simple genomic regio
       'filters':['"design_description: cortex"',str,None,'one or more sample specific filters passed to Lucene (using the Lucene query langage)'],
       'contains':['1',str,None,'search for only junctions which have both their genomic coordinates within (inclusive) the specified region'],
       'exact':['1',str,None,'search for only junctions which have both their genomic coordinates matching exactly the specified region\'s start/end coordinates'],
-      'within':['2',str,None,'search for only junctions which have one or the other of their genomic coordinates within (inclusive) of the specified region, 1=left coordinte;2=right coordinate']}
+      'either':['2',str,None,'search for only junctions which have one or the other of their genomic coordinates within (inclusive) of the specified region, 1=left coordinte;2=right coordinate']}
 SAMPLE_IDS_COL=12
 INTRON_ID_COL=1
 INTERVAL_CHR_COL=2
