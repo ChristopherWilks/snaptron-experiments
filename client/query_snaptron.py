@@ -243,9 +243,9 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
 
 def download_sample_metadata(args):
     sample_records = {}
+    cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % args.datasrc)
     gfout = None
     if clsnapconf.CACHE_SAMPLE_METADTA:
-        cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % args.datasrc)
         if os.path.exists(cache_file):
             with gzip.open(cache_file,"r") as gfin:
                 for (i,line) in enumerate(gfin):
@@ -254,10 +254,11 @@ def download_sample_metadata(args):
                     sample_records[fields[0]]=line
                     if i == 0:
                         sample_records["header"]=line
-            del sample_records['']
+            if '' in sample_records:
+                del sample_records['']
             return sample_records
         else:
-            gfout = gzip.open(cache_file,"w")
+            gfout = gzip.open(cache_file+".tmp","w")
     response = urllib2.urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
     all_records = response.read()
     all_records = all_records.split('\n')
@@ -273,7 +274,9 @@ def download_sample_metadata(args):
             gfout.write("%s\n" % (line))
     if gfout is not None:
         gfout.close()
-    del sample_records['']
+        os.rename(cache_file+".tmp", cache_file)
+    if '' in sample_records:
+        del sample_records['']
     return sample_records
 
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
