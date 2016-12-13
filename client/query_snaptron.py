@@ -15,7 +15,7 @@ from SnaptronIteratorLocal import SnaptronIteratorLocal
 GTEX_TISSUE_COL=65
 
 fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
-def parse_query_argument(record, fieldnames, groups, header=True):
+def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
     endpoint = 'snaptron'
     query=[]
     for field in fieldnames:
@@ -25,7 +25,12 @@ def parse_query_argument(record, fieldnames, groups, header=True):
                 predicates = predicates.split('&')
                 query.append("&".join(["%s=%s" % (fmap[field],x) for x in predicates]))
             elif field == 'group':
-                groups.append(record[field])
+                group = record[field]
+                groups.append(group)
+                #dont want to print the header multiple times for the same group
+                if group in groups_seen:
+                    header = False
+                groups_seen.add(group)
             else:
                 mapped_field = field
                 if field in fmap:
@@ -43,7 +48,7 @@ def parse_command_line_args(args):
         if field in vars(args) and vars(args)[field] is not None:
             fieldnames.append(field)
     groups = []
-    (query,endpoint) = parse_query_argument(vars(args), fieldnames, groups, header=args.function is not None or not args.noheader)
+    (query,endpoint) = parse_query_argument(vars(args), fieldnames, groups, set(), header=args.function is not None or not args.noheader)
     return (["&".join(query)], groups, endpoint)
 
 
@@ -53,11 +58,12 @@ def parse_query_params(args):
     endpoint = 'snaptron'
     queries = []
     groups = []
+    groups_seen = set()
     with open(args.query_file,"r") as cfin:
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
         get_header = args.function is not None or not args.noheader
         for (i,record) in enumerate(creader):
-            (query, endpoint) = parse_query_argument(record, creader.fieldnames, groups, header=get_header)
+            (query, endpoint) = parse_query_argument(record, creader.fieldnames, groups, groups_seen, header=get_header)
             queries.append("&".join(query))
             if args.function is None:
                 get_header = False
@@ -276,7 +282,6 @@ def process_group(args, group_idx, groups, group_fhs, results):
                 group_fh = group_fhs[group]
             else:
                 group_fh = group_fhs[group] = open("%s/%s.raw" % (args.tmpdir,group),"w")
-                #group_fh = group_fhs[group]
         if 'groups_seen' in results:
             #track # of items in each group
             if group not in results['groups_seen']:
