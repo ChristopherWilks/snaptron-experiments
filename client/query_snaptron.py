@@ -215,6 +215,9 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
     sys.stdout.write("group\tshared_sample_counts\n")
     shared_group_count = 0
     total_fully_annotated_count = 0
+    annots_fh = None
+    if not args.noraw:
+        annots_fh = open("%s/fully_annotated_groups.tsv" % (args.tmpdir),"w")
     for group in group_list:
         #now see if this is a shared group or not
         if group not in results['shared'] or len(results['shared'][group]) == 0:
@@ -231,6 +234,9 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
                 annot_count_across_iters+=1
         if annot_count_across_iters == results['groups_seen'][group]:
             total_fully_annotated_count+=1
+            annots_fh.write("%s\t%d\n" % (group, annot_count_across_iters))
+    if annots_fh is not None:
+        annots_fh.close()
     sys.stderr.write("total # of groups with shared samples:\t%d\n" % (shared_group_count))
     sys.stderr.write("total # of groups with fully annotated splices:\t%d\n" % (total_fully_annotated_count))
 
