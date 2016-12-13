@@ -266,6 +266,28 @@ def download_sample_metadata(args):
         del sample_records['']
     return sample_records
 
+def process_group(args, group_idx, groups, group_fhs, results):
+    group = None
+    group_fh = None
+    if group_idx < len(groups):
+        group = groups[group_idx]
+        if not args.noraw:
+            if group in group_fhs:
+                group_fh = group_fhs[group]
+            else:
+                group_fh = group_fhs[group] = open("%s/%s.raw" % (args.tmpdir,group),"w")
+                #group_fh = group_fhs[group]
+        if 'groups_seen' in results:
+            #track # of items in each group
+            if group not in results['groups_seen']:
+                results['groups_seen'][group]=0
+            if group not in results['annotated']:
+                results['annotated'][group]={}
+            results['groups_seen'][group]+=1
+            results['annotated'][group][results['groups_seen'][group]]=0
+    return (group, group_fh)
+
+
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
 either_patt = re.compile(r'either=(\d)')
 def process_queries(args, query_params_per_region, groups, endpoint, function=None, local=False):
@@ -275,25 +297,14 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
         results['shared']={}
         results['annotated']={}
     first = True
+    group_fhs = {}
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
         m = either_patt.search(query_param_string)
         if m is not None:
             results['either'] = int(m.group(1))
         sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
-        group = None
-        group_fh = None
-        if group_idx < len(groups):
-            group = groups[group_idx]
-            if not args.noraw:
-                group_fh = open("%s/%s.raw" % (args.tmpdir,group),"w")
-            if 'groups_seen' in results:
-                if group not in results['groups_seen']:
-                    results['groups_seen'][group]=0
-                if group not in results['annotated']:
-                    results['annotated'][group]={}
-                results['groups_seen'][group]+=1
-                results['annotated'][group][results['groups_seen'][group]]=0
         #assume we get a header in this case and don't count it against the args.limit
+        (group, group_fh) = process_group(args, group_idx, groups, group_fhs, results)
         counter = -1
         if args.noheader:
             counter = 0
@@ -310,10 +321,9 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
                     if not args.noheader and first and counter == 0:
                         group_label = 'group\t'
                 sys.stdout.write("%s%s\n" % (group_label, record))
-        #track # of items in each group
-        if group_fh is not None:
-            group_fh.close()
         first = False
+    for (group,group_fh) in group_fhs.iteritems():
+        group_fh.close()
     return results
 
 
