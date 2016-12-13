@@ -151,6 +151,14 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
     if 'snaptron_id' in record:
         return
     fields = record.split('\t')
+    #determine annotation status of the specific splice site from "either" modifier
+    annot_col = clsnapconf.LEFT_ANNOT_COL if results['either']==1 else clsnapconf.RIGHT_ANNOT_COL
+    if results['either'] == 0:
+        annot_col = clsnapconf.FULL_ANNOT_COL
+    annotated = 1 if fields[annot_col] != "0" else 0
+    if FUNCTION_TO_TYPE[args.function] == 'shared':
+        results['annotated'][group][results['groups_seen'][group]]+=annotated
+    #get sample list 
     samples = fields[clsnapconf.SAMPLE_IDS_COL].split(',')
     sample_covs = fields[clsnapconf.SAMPLE_IDS_COL+1].split(',')
     start_value = 0
@@ -164,7 +172,7 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
         if int(sample_covs[i]) == 0:
             continue
         #if we're doing tissue spec. then make sure we get shared samples, otherwise skip
-        if FUNCTION_TO_TYPE[args.function] == 'shared' and group in results['groups_seen']:
+        if FUNCTION_TO_TYPE[args.function] == 'shared' and results['groups_seen'][group] > 1:
             #haven't seen this sample before, so must not be shared
             if sample_id not in sample_stats or group not in sample_stats[sample_id]:
                 continue
@@ -200,7 +208,9 @@ def tissue_specificity(args, results, group_list, sample_records):
 def report_shared_sample_counts(args, results, group_list, sample_records):
     sys.stdout.write("group\tshared_sample_counts\n")
     shared_group_count = 0
+    total_fully_annotated_count = 0
     for group in group_list:
+        #now see if this is a shared group or not
         if group not in results['shared'] or len(results['shared'][group]) == 0:
             sys.stderr.write("No shared samples between splice junctions for %s, skipping\n" % (group))
             #sys.stdout.write("%s\t0\n" % (group))
@@ -208,7 +218,15 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
         count = len(results['shared'][group])
         shared_group_count+=1
         sys.stdout.write("%s\t%d\n" % (group, count))
-    sys.stderr.write("total groups with shared sample count:\t%d\n" % (shared_group_count))
+        #determine how many fully annotated groups there are
+        annot_count_across_iters = 0
+        for count_per_iter in results['annotated'][group].values():
+            if count_per_iter > 0:
+                annot_count_across_iters+=1
+        if annot_count_across_iters == results['groups_seen'][group]:
+            total_fully_annotated_count+=1
+    sys.stderr.write("total # of groups with shared samples:\t%d\n" % (shared_group_count))
+    sys.stderr.write("total # of groups with fully annotated splices:\t%d\n" % (total_fully_annotated_count))
 
 def download_sample_metadata(args):
     sample_records = {}
@@ -249,13 +267,18 @@ def download_sample_metadata(args):
     return sample_records
 
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
+either_patt = re.compile(r'either=(\d)')
 def process_queries(args, query_params_per_region, groups, endpoint, function=None, local=False):
-    results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}}}
+    results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}},'either':0}
     if FUNCTION_TO_TYPE[args.function] == 'shared':
-        results['groups_seen']=set()
+        results['groups_seen']={}
         results['shared']={}
+        results['annotated']={}
     first = True
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
+        m = either_patt.search(query_param_string)
+        if m is not None:
+            results['either'] = int(m.group(1))
         sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
         group = None
         group_fh = None
@@ -263,6 +286,13 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
             group = groups[group_idx]
             if not args.noraw:
                 group_fh = open("%s/%s.raw" % (args.tmpdir,group),"w")
+            if 'groups_seen' in results:
+                if group not in results['groups_seen']:
+                    results['groups_seen'][group]=0
+                if group not in results['annotated']:
+                    results['annotated'][group]={}
+                results['groups_seen'][group]+=1
+                results['annotated'][group][results['groups_seen'][group]]=0
         #assume we get a header in this case and don't count it against the args.limit
         counter = -1
         if args.noheader:
@@ -280,8 +310,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
                     if not args.noheader and first and counter == 0:
                         group_label = 'group\t'
                 sys.stdout.write("%s%s\n" % (group_label, record))
-        if group is not None and 'groups_seen' in results:
-            results['groups_seen'].add(group)
+        #track # of items in each group
         if group_fh is not None:
             group_fh.close()
         first = False
