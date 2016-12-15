@@ -1,0 +1,3 @@
+region	contains	thresholds	group
+chr2:29223529-29919992	1	samples_count>=100&annotated=1	A_NormalTSS
+chr2:29193923-29223528	1	samples_count>=100&annotated=1	B_AltTSS
