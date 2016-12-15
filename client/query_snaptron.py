@@ -164,6 +164,11 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
     annotated = 1 if fields[annot_col] != "0" else 0
     if FUNCTION_TO_TYPE[args.function] == 'shared':
         results['annotated'][group][results['groups_seen'][group]]+=annotated
+        if results['either'] > 0 and annotated == 1:
+            for annot_source in fields[annot_col].split(","):
+                if annot_source not in results['annotations'][group]:
+                    results['annotations'][group][annot_source] = [0,0]
+                results['annotations'][group][annot_source][results['either']-1] = 1
     #get sample list 
     samples = fields[clsnapconf.SAMPLE_IDS_COL].split(',')
     sample_covs = fields[clsnapconf.SAMPLE_IDS_COL+1].split(',')
@@ -232,7 +237,9 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
                 annot_count_across_iters+=1
         if annot_count_across_iters == results['groups_seen'][group]:
             total_fully_annotated_count+=1
-            annots_fh.write("%s\t%d\n" % (group, annot_count_across_iters))
+            #annot_sources = ",".join([x+":"+str(y) for (x,y) in sorted(results['annotations'][group].iteritems(),key=lambda x: x[1],reverse=True)])
+            annot_sources = ";".join([x+":"+str(y[0])+","+str(y[1]) for (x,y) in results['annotations'][group].iteritems()])
+            annots_fh.write("%s\t%d\t%s\n" % (group, annot_count_across_iters, annot_sources))
     if annots_fh is not None:
         annots_fh.close()
     sys.stderr.write("total # of groups with shared samples:\t%d\n" % (shared_group_count))
@@ -292,6 +299,7 @@ def process_group(args, group_idx, groups, group_fhs, results):
                 results['groups_seen'][group]=0
             if group not in results['annotated']:
                 results['annotated'][group]={}
+                results['annotations'][group]={}
             results['groups_seen'][group]+=1
             results['annotated'][group][results['groups_seen'][group]]=0
     return (group, group_fh)
@@ -305,6 +313,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
         results['groups_seen']={}
         results['shared']={}
         results['annotated']={}
+        results['annotations']={}
     first = True
     group_fhs = {}
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
