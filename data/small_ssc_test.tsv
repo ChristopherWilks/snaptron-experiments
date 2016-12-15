@@ -1,0 +1,7 @@
+region	either	thresholds	group
+chr1:1879786-1879786	2	strand=-&samples_count>=1	GNB1 validated
+chr1:1879903-1879903	1	strand=-&samples_count>=1	GNB1 validated
+chr1:9664595-9664595	2	strand=+&samples_count>=1	PIK3CD non_validated
+chr1:9664759-9664759	1	strand=+&samples_count>=1	PIK3CD non_validated
+chr6:32831148-32831148	2	strand=-&samples_count>=1	TAP2 validated
+chr6:32831182-32831182	1	strand=-&samples_count>=1	TAP2 validated
