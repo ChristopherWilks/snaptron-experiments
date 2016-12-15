@@ -194,8 +194,6 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
         if args.function != TISSUE_SPECIFICITY_FUNC:
             sample_stats[sample_id][group]+=int(sample_covs[i])
         else:
-            #initially we used coverage of just those shared samples, but now we just do present or not
-            #sample_stats[sample_id][group]=min(sample_stats[sample_id][group],int(sample_covs[i]))
             sample_stats[sample_id][group]=1
 
 def tissue_specificity(args, results, group_list, sample_records):
@@ -225,7 +223,6 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
         #now see if this is a shared group or not
         if group not in results['shared'] or len(results['shared'][group]) == 0:
             sys.stderr.write("No shared samples between splice junctions for %s, skipping\n" % (group))
-            #sys.stdout.write("%s\t0\n" % (group))
             continue
         count = len(results['shared'][group])
         shared_group_count+=1
@@ -237,7 +234,6 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
                 annot_count_across_iters+=1
         if annot_count_across_iters == results['groups_seen'][group]:
             total_fully_annotated_count+=1
-            #annot_sources = ",".join([x+":"+str(y) for (x,y) in sorted(results['annotations'][group].iteritems(),key=lambda x: x[1],reverse=True)])
             annot_sources = ";".join([x+":"+str(y[0])+","+str(y[1]) for (x,y) in results['annotations'][group].iteritems()])
             annots_fh.write("%s\t%d\t%s\n" % (group, annot_count_across_iters, annot_sources))
     if annots_fh is not None:
