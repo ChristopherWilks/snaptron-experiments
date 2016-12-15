@@ -168,8 +168,6 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
     samples = fields[clsnapconf.SAMPLE_IDS_COL].split(',')
     sample_covs = fields[clsnapconf.SAMPLE_IDS_COL+1].split(',')
     start_value = 0
-    if args.function == TISSUE_SPECIFICITY_FUNC:
-        start_value = sys.maxint
     #track samples shared across the flanking junctions here
     if 'shared' in results and group not in results['shared']:
         results['shared'][group] = set()
@@ -188,7 +186,7 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
             sample_stats[sample_id]={}
         if group not in sample_stats[sample_id]:
             sample_stats[sample_id][group]=start_value
-        if FUNCTION_TO_TYPE[args.function] != TISSUE_SPECIFICITY_FUNC:
+        if args.function != TISSUE_SPECIFICITY_FUNC:
             sample_stats[sample_id][group]+=int(sample_covs[i])
         else:
             #initially we used coverage of just those shared samples, but now we just do present or not
@@ -203,13 +201,13 @@ def tissue_specificity(args, results, group_list, sample_records):
             sys.stderr.write("No shared samples between splice junctions for %s\n" % (group))
         #for sample_id in results['shared'][group]:
         for sample_id in sample_records.keys():
-            present = 0
+            ts_val = 0
             #if sample_id in sample_stats and group in sample_stats[sample_id]:
             if sample_id in results['shared'][group]:
-                present = sample_stats[sample_id][group]
+                ts_val = sample_stats[sample_id][group]
             sfields = sample_records[sample_id].split("\t")
             tissue = sfields[GTEX_TISSUE_COL]
-            sys.stdout.write("%s\t%s\t%d\t%s\n" % (group, sample_id, present, tissue))
+            sys.stdout.write("%s\t%s\t%d\t%s\n" % (group, sample_id, ts_val, tissue))
 
 def report_shared_sample_counts(args, results, group_list, sample_records):
     sys.stdout.write("group\tshared_sample_counts\n")
