@@ -71,8 +71,8 @@ def parse_query_params(args):
     return (queries,groups,endpoint)
 
 def calc_jir(a, b):
-    numer = b - a
-    denom = a + b + 1
+    numer = (b - a) + 1
+    denom = (a + b) + 1
     return numer/float(denom)
 
 
@@ -89,9 +89,12 @@ def junction_inclusion_ratio(args, results, group_list, sample_records):
         sample_scores[sample] = calc_jir(sample_stats[sample][group_a], sample_stats[sample][group_b])
     missing_sample_ids = set()
     counter = 0
+    output = []
     if not args.noheader:
         sheader = sample_records["header"]
-        sys.stdout.write("jir_score\t%s raw count\t%s raw count\t%s\n" % (group_a,group_b,sheader))
+        outstr = "jir_score\t%s raw count\t%s raw count\t%s\n" % (group_a,group_b,sheader)
+        output.append(outstr)
+        sys.stdout.write(outstr)
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
         counter += 1
         if args.limit > -1 and counter > args.limit:
@@ -101,7 +104,10 @@ def junction_inclusion_ratio(args, results, group_list, sample_records):
             missing_sample_ids.add(sample)
             continue
         sample_record = sample_records[sample]
-        sys.stdout.write("%s\t%d\t%d\t%s\n" % (str(score),sample_stats[sample][group_a],sample_stats[sample][group_b],sample_record))
+        outstr = "%s\t%d\t%d\t%s\n" % (str(score),sample_stats[sample][group_a],sample_stats[sample][group_b],sample_record)
+        output.append(outstr)
+        sys.stdout.write(outstr)
+    return output
 
 def track_exons(args, results, record, group, out_fh=None):
     exons = results['exons']
@@ -128,6 +134,7 @@ def filter_exons(args, results, group_list, sample_records):
     coords = sorted(results['exons'].keys())
     end = None
     end_ids = None
+    output = []
     sys.stdout.write("Type\tLeft End Snaptron IDs\tRight End Snaptron IDs\tstart\tend\tlength\n")
     for (i,coord) in enumerate(coords):
         fields = results['exons'][coord]
@@ -144,6 +151,7 @@ def filter_exons(args, results, group_list, sample_records):
                     dist = coord2 - 1 - end
                     if dist >= clsnapconf.MIN_EXON_SIZE and (rlen1 is None or (dist >= int(rlen1) and dist <= int(rlen2))):
                         sys.stdout.write("exon\t%s\t%s\t%d\t%d\t%d\n" % (",".join(end_ids),",".join(start_ids),end+1,coord2-1,dist))
+    return output
 
 TISSUE_SPECIFICITY_FUNC='ts'
 SHARED_SAMPLE_COUNT_FUNC='shared'
@@ -198,6 +206,7 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
 
 def tissue_specificity(args, results, group_list, sample_records):
     sample_stats = results['samples']
+    output = []
     sys.stdout.write("group\tsample_id\tshared\ttissue\n")
     for group in group_list:
         if group not in results['shared'] or len(results['shared'][group]) == 0:
@@ -211,8 +220,10 @@ def tissue_specificity(args, results, group_list, sample_records):
             sfields = sample_records[sample_id].split("\t")
             tissue = sfields[GTEX_TISSUE_COL]
             sys.stdout.write("%s\t%s\t%d\t%s\n" % (group, sample_id, ts_val, tissue))
+    return output
 
 def report_shared_sample_counts(args, results, group_list, sample_records):
+    output = []
     sys.stdout.write("group\tshared_sample_counts\n")
     shared_group_count = 0
     total_fully_annotated_count = 0
@@ -240,6 +251,7 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
         annots_fh.close()
     sys.stderr.write("total # of groups with shared samples:\t%d\n" % (shared_group_count))
     sys.stderr.write("total # of groups with fully annotated splices:\t%d\n" % (total_fully_annotated_count))
+    return output
 
 def download_sample_metadata(args):
     sample_records = {}
@@ -357,10 +369,9 @@ def main(args):
         group_list = set()
         map(lambda x: group_list.add(x), groups)
         group_list = sorted(group_list)
-        summary_function(args,results,group_list,sample_records)
+        output = summary_function(args,results,group_list,sample_records)
 
-
-if __name__ == '__main__':
+def create_parser(disable_header=False):
     parser = argparse.ArgumentParser(description='Snaptron command line client')
     for (field,settings) in clsnapconf.FIELD_ARGS.iteritems():
         parser.add_argument("--%s" % field, metavar=settings[0], type=settings[1], default=settings[2], help=settings[3])
@@ -378,14 +389,17 @@ if __name__ == '__main__':
     
     parser.add_argument('--local', action='store_const', const=True, default=False, help='if running Snaptron modeules locally (skipping WSI)')
     parser.add_argument('--noraw', action='store_const', const=True, default=False, help='don\'t store output of WSI in tmpdir')
-    parser.add_argument('--noheader', action='store_const', const=True, default=False, help='turn off printing header in output')
+    parser.add_argument('--noheader', action='store_const', const=True, default=disable_header, help='turn off printing header in output')
     
     parser.add_argument('--datasrc', metavar='data_source_namd', type=str, default=clsnapconf.DS_SRAV2, help='data source instance of Snaptron to use, check clsnapconf.py for list')
-    
+    return parser
 
+
+if __name__ == '__main__':
+    
+    parser = create_parser()
     #returned format (UCSC, and/or subselection of fields) option?
     #intersection or union of intervals option?
-
 
     args = parser.parse_args()
     if args.region is None and args.thresholds is None and args.filters is None and args.query_file is None:
