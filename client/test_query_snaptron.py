@@ -21,21 +21,42 @@ def tearDownModule():
 
 class TestFunctions(unittest.TestCase):
     def setUp(self):
+        self.groupA='A'
+        self.groupB='B'
+        self.groupC='C'
+        self.sample_1 = "1"
+        self.sample_2 = "2"
         pass
     
     def tearDown(self):
         pass
 
     def test_junction_inclusion_ratio(self):
-        sample_1 = "1"
-        sample_2 = "2"
-        expected_output=["jir_score\tA raw count\tB raw count\t%s\n" % sample_records["header"]]
+        expected_output=["jir_score\t%s raw count\t%s raw count\t%s\n" % (self.groupA,self.groupB,sample_records["header"])]
         #sample_records[sample_1]="filler"
         #sample_records[sample_2]="filler"
-        expected_output.append("0.5\t1\t2\t%s\n" % (sample_records[sample_1]))
-        expected_output.append("0.333333333333\t2\t3\t%s\n" % (sample_records[sample_2]))
-        output = query_snaptron.junction_inclusion_ratio(args, {'samples':{sample_1:{"A":1,"B":2},sample_2:{"A":2,"B":3}}}, ["A","B"], sample_records)
+        expected_output.append("0.5\t1\t2\t%s\n" % (sample_records[self.sample_1]))
+        expected_output.append("0.333333333333\t2\t3\t%s\n" % (sample_records[self.sample_2]))
         expected_outputstr = "".join(expected_output)
+
+        output = query_snaptron.junction_inclusion_ratio(args, {'samples':{self.sample_1:{self.groupA:1,self.groupB:2},self.sample_2:{self.groupA:2,self.groupB:3}}}, [self.groupA, self.groupB], sample_records)
+        outputstr = "".join(output)
+        self.assertEqual(outputstr, expected_outputstr)
+
+    def test_report_shared_sample_counts(self):
+        results = {'shared':{self.groupA:set([self.sample_1]),self.groupB:([self.sample_2]),self.groupC:set([self.sample_1,self.sample_2])},
+                   'annotated':{self.groupA:{1:2,2:1},self.groupB:{1:2,2:0,3:0},self.groupC:{1:0,2:0}},
+                   'annotations':{self.groupA:{"sG19":[1,1],"aC19":[1,1]},self.groupB:{"sG38":[1,0]}},
+                   'groups_seen':{self.groupA:2,self.groupB:3,self.groupC:2}}
+        expected_output = ["group\tshared_sample_counts\n"]
+        expected_output.append("%s\t%d\n" % (self.groupA, 1))
+        expected_output.append("%s\t%d\t%s\n" % (self.groupA, 2, "sG19:1,1;aC19:1,1"))
+        expected_output.append("%s\t%d\n" % (self.groupB, 1))
+        expected_output.append("%s\t%d\n" % (self.groupC, 2))
+        expected_output.append("total # of groups with shared samples:\t3\n")
+        expected_output.append("total # of groups with fully annotated splices:\t1\n" )
+        expected_outputstr = "".join(expected_output)
+        output = query_snaptron.report_shared_sample_counts(args, results, [self.groupA, self.groupB, self.groupC], sample_records)
         outputstr = "".join(output)
         self.assertEqual(outputstr, expected_outputstr)
 

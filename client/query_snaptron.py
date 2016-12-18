@@ -224,7 +224,9 @@ def tissue_specificity(args, results, group_list, sample_records):
 
 def report_shared_sample_counts(args, results, group_list, sample_records):
     output = []
-    sys.stdout.write("group\tshared_sample_counts\n")
+    outputstr = "group\tshared_sample_counts\n"
+    output.append(outputstr)
+    sys.stdout.write(outputstr)
     shared_group_count = 0
     total_fully_annotated_count = 0
     annots_fh = None
@@ -233,11 +235,15 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
     for group in group_list:
         #now see if this is a shared group or not
         if group not in results['shared'] or len(results['shared'][group]) == 0:
-            sys.stderr.write("No shared samples between splice junctions for %s, skipping\n" % (group))
+            outputstr = "No shared samples between splice junctions for %s, skipping\n" % (group)
+            output.append(outputstr)
+            sys.stderr.write(outputstr)
             continue
         count = len(results['shared'][group])
         shared_group_count+=1
-        sys.stdout.write("%s\t%d\n" % (group, count))
+        outputstr = "%s\t%d\n" % (group, count)
+        output.append(outputstr)
+        sys.stdout.write(outputstr)
         #determine how many fully annotated groups there are
         annot_count_across_iters = 0
         for count_per_iter in results['annotated'][group].values():
@@ -246,11 +252,17 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
         if annot_count_across_iters == results['groups_seen'][group]:
             total_fully_annotated_count+=1
             annot_sources = ";".join([x+":"+str(y[0])+","+str(y[1]) for (x,y) in results['annotations'][group].iteritems()])
-            annots_fh.write("%s\t%d\t%s\n" % (group, annot_count_across_iters, annot_sources))
+            outputstr = "%s\t%d\t%s\n" % (group, annot_count_across_iters, annot_sources)
+            output.append(outputstr)
+            annots_fh.write(outputstr)
     if annots_fh is not None:
         annots_fh.close()
-    sys.stderr.write("total # of groups with shared samples:\t%d\n" % (shared_group_count))
-    sys.stderr.write("total # of groups with fully annotated splices:\t%d\n" % (total_fully_annotated_count))
+    outputstr = "total # of groups with shared samples:\t%d\n" % (shared_group_count)
+    output.append(outputstr)
+    sys.stderr.write(outputstr)
+    outputstr = "total # of groups with fully annotated splices:\t%d\n" % (total_fully_annotated_count)
+    output.append(outputstr)
+    sys.stderr.write(outputstr)
     return output
 
 def download_sample_metadata(args):
