@@ -71,7 +71,7 @@ def parse_query_params(args):
     return (queries,groups,endpoint)
 
 def calc_jir(a, b):
-    numer = (b - a) + 1
+    numer = (b - a)
     denom = (a + b) + 1
     return numer/float(denom)
 
@@ -153,6 +153,7 @@ def filter_exons(args, results, group_list, sample_records):
                         sys.stdout.write("exon\t%s\t%s\t%d\t%d\t%d\n" % (",".join(end_ids),",".join(start_ids),end+1,coord2-1,dist))
     return output
 
+
 TISSUE_SPECIFICITY_FUNC='ts'
 SHARED_SAMPLE_COUNT_FUNC='shared'
 JIR_FUNC='jir'
@@ -231,7 +232,7 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
     total_fully_annotated_count = 0
     annots_fh = None
     if not args.noraw:
-        annots_fh = open("%s/fully_annotated_groups.tsv" % (args.tmpdir),"w")
+        annots_fh = open("%s/fully_annotated_groups.%s.tsv" % (args.tmpdir,args.datasrc),"w")
     for group in group_list:
         #now see if this is a shared group or not
         if group not in results['shared'] or len(results['shared'][group]) == 0:

@@ -35,8 +35,9 @@ class TestFunctions(unittest.TestCase):
         expected_output=["jir_score\t%s raw count\t%s raw count\t%s\n" % (self.groupA,self.groupB,sample_records["header"])]
         #sample_records[sample_1]="filler"
         #sample_records[sample_2]="filler"
-        expected_output.append("0.5\t1\t2\t%s\n" % (sample_records[self.sample_1]))
-        expected_output.append("0.333333333333\t2\t3\t%s\n" % (sample_records[self.sample_2]))
+        expected_output.append("0.25\t1\t2\t%s\n" % (sample_records[self.sample_1]))
+        expected_output.append("0.166666666667\t2\t3\t%s\n" % (sample_records[self.sample_2]))
+        #expected_output.append("0.333333333333\t2\t3\t%s\n" % (sample_records[self.sample_2]))
         expected_outputstr = "".join(expected_output)
 
         output = query_snaptron.junction_inclusion_ratio(args, {'samples':{self.sample_1:{self.groupA:1,self.groupB:2},self.sample_2:{self.groupA:2,self.groupB:3}}}, [self.groupA, self.groupB], sample_records)
