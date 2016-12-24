@@ -1,7 +1,6 @@
 # snaptron-experiments
 contains code and scripts to re-create analysis function experiments from the Snaptron paper
 
-
 ## Analyses
 
 1. Shared sample count (SSC) 
@@ -24,6 +23,10 @@ contains code and scripts to re-create analysis function experiments from the Sn
 [TCGA HG38 Input file](data/alk_alt_tss.hg38.tcga.snap.tsv)
 
 
-## General Snpatron Client
+## General Snaptron Client
 
 [query_snaptron.py](client/query_snaptron.py)
+
+## Examples
+
+Run the [examples script](examples.sh) to see the Snaptron client's various options.
