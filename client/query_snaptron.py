@@ -179,8 +179,9 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
                     results['annotations'][group][annot_source] = [0,0]
                 results['annotations'][group][annot_source][results['either']-1] = 1
     #get sample list 
-    samples = fields[clsnapconf.SAMPLE_IDS_COL].split(',')
-    sample_covs = fields[clsnapconf.SAMPLE_IDS_COL+1].split(',')
+    samples_ = fields[clsnapconf.SAMPLE_IDS_COL][1:].split(',')
+    samples = [x.split(":")[0] for x in samples_]
+    sample_covs = [x.split(":")[1] for x in samples_]
     start_value = 0
     #track samples shared across the flanking junctions here
     if 'shared' in results and group not in results['shared']:
