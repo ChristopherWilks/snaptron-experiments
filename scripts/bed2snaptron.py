@@ -2,7 +2,7 @@
 import sys
 
 seen = {}
-sys.stdout.write("region\teither\tthresholds\tgroup\n")
+sys.stdout.write("region\teither\tfilters\tgroup\n")
 #assumes input is in start coordinate sorted order
 for line in sys.stdin:
     fields = line.rstrip().split('\t')

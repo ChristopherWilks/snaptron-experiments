@@ -1,4 +1,4 @@
-region	either	thresholds	group
+region	either	filters	group
 chr1:1879786-1879786	2	strand=-&samples_count>=1	GNB1 validated
 chr1:1879903-1879903	1	strand=-&samples_count>=1	GNB1 validated
 chr1:9664595-9664595	2	strand=+&samples_count>=1	PIK3CD non_validated

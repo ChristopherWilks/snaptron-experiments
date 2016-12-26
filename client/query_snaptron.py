@@ -14,13 +14,13 @@ from SnaptronIteratorLocal import SnaptronIteratorLocal
 
 GTEX_TISSUE_COL=65
 
-fmap = {'thresholds':'rfilter','filters':'sfilter','region':'regions'}
+fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions'}
 def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
     endpoint = 'snaptron'
     query=[]
     for field in fieldnames:
         if len(record[field]) > 0:
-            if field == 'thresholds' or field == 'filters':
+            if field == 'filters' or field == 'metadata':
                 predicates = re.sub("=",":",record[field])
                 predicates = predicates.split('&')
                 query.append("&".join(["%s=%s" % (fmap[field],x) for x in predicates]))
@@ -390,7 +390,7 @@ def create_parser(disable_header=False):
     for (field,settings) in clsnapconf.FIELD_ARGS.iteritems():
         parser.add_argument("--%s" % field, metavar=settings[0], type=settings[1], default=settings[2], help=settings[3])
 
-    parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more thresholds and/or filters specified and/or contained flag turned on')
+    parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more filters and/or metadata contraints specified and/or contained/either/within flag(s) turned on')
 
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio "jir" and exon finding "exon"')
 
@@ -416,7 +416,7 @@ if __name__ == '__main__':
     #intersection or union of intervals option?
 
     args = parser.parse_args()
-    if args.region is None and args.thresholds is None and args.filters is None and args.query_file is None:
+    if args.region is None and args.filters is None and args.metadata is None and args.query_file is None:
         sys.stderr.write("Error: no discernible arguments passed in, exiting\n")
         parser.print_help()
         sys.exit(-1)
