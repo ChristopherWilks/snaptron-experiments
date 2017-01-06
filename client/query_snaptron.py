@@ -18,8 +18,10 @@ fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions'}
 def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
     endpoint = 'snaptron'
     query=[]
+    fields_seen = set()
     for field in fieldnames:
         if len(record[field]) > 0:
+            fields_seen.add(field)
             if field == 'filters' or field == 'metadata':
                 predicates = re.sub("=",":",record[field])
                 predicates = predicates.split('&')
@@ -36,6 +38,8 @@ def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
                 if field in fmap:
                     mapped_field = fmap[field]
                 query.append("%s=%s" % (mapped_field,record[field]))
+    if len(fields_seen) == 1 and "metadata" in fields_seen:
+        endpoint = 'sample'
     if not header:
         query.append("header=0")
     return (query,endpoint)

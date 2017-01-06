@@ -5,7 +5,7 @@ import httplib
 from SnaptronIterator import SnaptronIterator
 import clsnapconf
 
-ENDPOINTS={'snaptron':'snaptron','sample':'sample','annotation':'annotation','density':'density','breakpoint':'breakpoint'}
+ENDPOINTS={'snaptron':'snaptron','sample':'samples','annotation':'annotations','density':'density','breakpoint':'breakpoint'}
 
 class SnaptronIteratorHTTP(SnaptronIterator):
 
