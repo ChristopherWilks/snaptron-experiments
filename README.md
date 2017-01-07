@@ -4,8 +4,9 @@ Also contains a general purpose client for querying the Snpatron web services.
 
 Requirements:
 
-*Python 2.7
-*R with ggplot2 
+* Python 2.7
+
+* R with ggplot2 
 
 
 Intermediate results will still be produced even if Rscript
@@ -27,40 +28,47 @@ Intermediate data downloaded from the Snaptron web services is stored in the sna
 1. Shared sample count (SSC) 
 [Script](scripts/run_ssc.sh)
 
-Input:
+  Input:
 
-   [HG38 Input file](data/novel_exons.raw.hg38.bed)
+	[HG38 Input file](data/novel_exons.raw.hg38.bed)
 
-Output:
+  Output:
+
 	* novel_exons.hg38.ssc_results_srav2.tsv
+
 	* novel_exons.hg38.ssc_results_gtex.tsv
+
 	* shared_sample_counts.pdf
 
 2. Tissue specificity (TS)
 [Script](scripts/run_ts.sh)
 
-Input:
+  Input:
 
-   [HG38 Input file](data/rel_splices.hg38.snap.tsv)
+	[HG38 Input file](data/rel_splices.hg38.snap.tsv)
 
-Output:
+  Output:
 	* P-values writen to standard out
+
 	* rel_ts_list.tsv
+
 
 3. Junction Inclusion Ratio (JIR)
 [Script](scripts/run_jir.sh)
 
-Input:
+  Input:
 
-   [HG19 Input file](data/alk_alt_tss.hg19.snap.tsv)
+	[HG19 Input file](data/alk_alt_tss.hg19.snap.tsv)
 
-   [GTEx HG38 Input file](data/alk_alt_tss.hg38.snap.tsv)
+	[GTEx HG38 Input file](data/alk_alt_tss.hg38.snap.tsv)
 
-   [TCGA HG38 Input file](data/alk_alt_tss.hg38.tcga.snap.tsv)
+	[TCGA HG38 Input file](data/alk_alt_tss.hg38.tcga.snap.tsv)
 
-Output:
+  Output:
 	* alk_alt_tss.hg19.srav1.jir_results.tsv
+
 	* alk_alt_tss.hg38.gtex.jir_results.tsv
+
 	* alk_alt_tss.hg38.tcga.jir_results.tsv
 
 
