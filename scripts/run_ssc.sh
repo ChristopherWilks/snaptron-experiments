@@ -14,4 +14,4 @@ python query_snaptron.py --query-file ../data/novel_exons.hg38.snap.tsv --functi
 
 # Make the boxplot; requires R & ggplot2
 cd ..
-Rscript scripts/validation_boxplot.R data/novel_exons.hg38.ssc_results_srav2.tsv data/novel_exons.hg38.ssc_results_gtex.tsv
+Rscript scripts/validation_boxplot.R ./novel_exons.hg38.ssc_results_srav2.tsv ./novel_exons.hg38.ssc_results_gtex.tsv
