@@ -1,11 +1,11 @@
 # snaptron-experiments
-contains code and scripts to re-create analysis function experiments from the Snaptron paper
+Contains code and scripts to re-create analyses from the Snaptron paper.
+Also contains a general purpose client for querying the Snpatron web services.
 
 Requirements:
 
-Python 2.7
-
-R with ggplot2 
+*Python 2.7
+*R with ggplot2 
 
 
 Intermediate results will still be produced even if Rscript
@@ -13,24 +13,55 @@ is not found in the path.
 
 ## Analyses
 
+You can run all three analyses from the paper via this [script](./run_all.sh).
+
+There will be some delay (typically a few minutes)
+when a Snaptron compilation (e.g. GTEx)
+is accessed for the first time as the whole of the
+sample metadata will be downloaded and cached locally.
+
+Output from the scripts is dumped in the working directory.
+
+Intermediate data downloaded from the Snaptron web services is stored in the snaptron_tmp directory.
+
 1. Shared sample count (SSC) 
 [Script](scripts/run_ssc.sh)
 
+Input:
+
    [HG38 Input file](data/novel_exons.raw.hg38.bed)
+
+Output:
+	* novel_exons.hg38.ssc_results_srav2.tsv
+	* novel_exons.hg38.ssc_results_gtex.tsv
+	* shared_sample_counts.pdf
 
 2. Tissue specificity (TS)
 [Script](scripts/run_ts.sh)
 
+Input:
+
    [HG38 Input file](data/rel_splices.hg38.snap.tsv)
+
+Output:
+	* P-values writen to standard out
+	* rel_ts_list.tsv
 
 3. Junction Inclusion Ratio (JIR)
 [Script](scripts/run_jir.sh)
+
+Input:
 
    [HG19 Input file](data/alk_alt_tss.hg19.snap.tsv)
 
    [GTEx HG38 Input file](data/alk_alt_tss.hg38.snap.tsv)
 
    [TCGA HG38 Input file](data/alk_alt_tss.hg38.tcga.snap.tsv)
+
+Output:
+	* alk_alt_tss.hg19.srav1.jir_results.tsv
+	* alk_alt_tss.hg38.gtex.jir_results.tsv
+	* alk_alt_tss.hg38.tcga.jir_results.tsv
 
 
 ## General Snaptron Client
@@ -40,3 +71,4 @@ is not found in the path.
 ## Examples
 
 Run the [examples script](examples.sh) to see some of the Snaptron client's various options.
+
