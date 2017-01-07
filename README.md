@@ -14,7 +14,9 @@ is not found in the path.
 
 ## Analyses
 
-You can run all three analyses from the paper via this [script](./run_all.sh).
+You can run all three analyses from the paper via this [script](./run_all.sh):
+	
+	./run_all.sh > run_all.out 2>&1
 
 There will be some delay (typically a few minutes)
 when a Snaptron compilation (e.g. GTEx)
