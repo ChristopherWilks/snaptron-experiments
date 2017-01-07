@@ -25,7 +25,7 @@ sample metadata will be downloaded and cached locally.
 
 Output from the scripts is dumped in the working directory.
 
-Intermediate data downloaded from the Snaptron web services is stored in the snaptron_tmp directory.
+Intermediate data downloaded from the Snaptron web services is stored in the `snaptron_tmp` directory.
 
 
 The SSC analysis takes several minutes to complete (~15) as it 
