@@ -4,7 +4,9 @@ contains code and scripts to re-create analysis function experiments from the Sn
 Requirements:
 
 Python 2.7
+
 R with ggplot2 
+
 
 Intermediate results will still be produced even if Rscript
 is not found in the path.
