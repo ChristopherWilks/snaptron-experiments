@@ -25,6 +25,14 @@ Output from the scripts is dumped in the working directory.
 
 Intermediate data downloaded from the Snaptron web services is stored in the snaptron_tmp directory.
 
+
+The SSC analysis takes several minutes to complete (~15) as it 
+has to make more than 200 queries to both the GTEx and SRAv2
+compilations.
+
+The other two should complete within a minute.
+
+
 1. Shared sample count (SSC) 
 [Script](scripts/run_ssc.sh)
 
@@ -39,6 +47,15 @@ Intermediate data downloaded from the Snaptron web services is stored in the sna
 	* novel_exons.hg38.ssc_results_gtex.tsv
 
 	* shared_sample_counts.pdf
+
+	* The following is written to standard error at the end of each compilation's run:
+
+		* Exons with 0 SSC
+
+		* # of exons with > 0 SSC
+
+		* # of exons with > 0 SSC which are fully annotated
+
 
 2. Tissue specificity (TS)
 [Script](scripts/run_ts.sh)
