@@ -1,6 +1,6 @@
 # snaptron-experiments
 Contains code and scripts to re-create analyses from the Snaptron paper.
-Also contains a general purpose client for querying the Snpatron web services.
+Also contains a general purpose client for querying the Snaptron web services.
 
 Requirements:
 
