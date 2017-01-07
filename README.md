@@ -52,9 +52,9 @@ The other two should complete within a minute.
 
 		* Exons with 0 SSC
 
-		* # of exons with > 0 SSC
+		* \# of exons with > 0 SSC
 
-		* # of exons with > 0 SSC which are fully annotated
+		* \# of exons with > 0 SSC which are fully annotated
 
 
 2. Tissue specificity (TS)
