@@ -7,10 +7,10 @@ cat data/novel_exons.raw.hg38.bed | python scripts/bed2snaptron.py > ./data/nove
 cd client/
 #run the actual analysis using the SRAv2 data source
 #a slight re-formatting is needed to rename the header to be specific for the validation analysis
-python query_snaptron.py --query-file ../data/novel_exons.hg38.snap.tsv --function shared --datasrc srav2 | perl -ne '$s=$_; if(!$p) { print "group\tvalidation\tshared_sample_counts\n"; $p=1; next} $s=~s/ /\t/; print "$s";'  > ../data/novel_exons.hg38.ssc_results_srav2.tsv
+python query_snaptron.py --query-file ../data/novel_exons.hg38.snap.tsv --function shared --datasrc srav2 | perl -ne '$s=$_; if(!$p) { print "group\tvalidation\tshared_sample_counts\n"; $p=1; next} $s=~s/ /\t/; print "$s";'  > ../novel_exons.hg38.ssc_results_srav2.tsv
 
 #run the actual analysis using the GTEx data source
-python query_snaptron.py --query-file ../data/novel_exons.hg38.snap.tsv --function shared --datasrc gtex | perl -ne '$s=$_; if(!$p) { print "group\tvalidation\tshared_sample_counts\n"; $p=1; next} $s=~s/ /\t/; print "$s";'  > ../data/novel_exons.hg38.ssc_results_gtex.tsv
+python query_snaptron.py --query-file ../data/novel_exons.hg38.snap.tsv --function shared --datasrc gtex | perl -ne '$s=$_; if(!$p) { print "group\tvalidation\tshared_sample_counts\n"; $p=1; next} $s=~s/ /\t/; print "$s";'  > ../novel_exons.hg38.ssc_results_gtex.tsv
 
 # Make the boxplot; requires R & ggplot2
 cd ..
