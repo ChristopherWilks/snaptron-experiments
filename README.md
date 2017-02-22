@@ -12,6 +12,10 @@ Requirements:
 Intermediate results will still be produced even if Rscript
 is not found in the path.
 
+**Ask questions in the repo's**
+
+[![Join the chat at https://gitter.im/snaptron](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/snaptron?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) .
+
 ## Analyses
 
 You can run all three analyses from the paper via this [script](./run_all.sh):
