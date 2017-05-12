@@ -33,7 +33,7 @@ from SnaptronIteratorLocal import SnaptronIteratorLocal
 
 GTEX_TISSUE_COL=65
 
-fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions'}
+fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
 def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
     endpoint = 'snaptron'
     query=[]
