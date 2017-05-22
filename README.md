@@ -12,7 +12,7 @@ Requirements:
 Intermediate results will still be produced even if Rscript
 is not found in the path.
 
-**Ask questions in the repo's**
+**Ask questions in the project's**
 
 [![Join the chat at https://gitter.im/snaptron/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/snaptron/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
