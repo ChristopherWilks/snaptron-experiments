@@ -35,6 +35,12 @@ GTEX_TISSUE_COL=65
 
 fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
 def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
+    '''Called from parse_command_line_args; 
+    builds the Snaptron query string from one 
+    or more of the separate query arguments passed in fieldnames: 
+    region (range), filters (rfilter), metadata (sfilter), 
+    and samples (sids)'''
+
     endpoint = 'snaptron'
     query=[]
     fields_seen = set()
@@ -65,6 +71,8 @@ def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
 
 
 def parse_command_line_args(args):
+    '''Loop through arguments passed in on the command line and parse them'''
+
     fieldnames = []
     endpoint = 'snaptron'
     for field in clsnapconf.FIELD_ARGS.keys():
@@ -76,6 +84,9 @@ def parse_command_line_args(args):
 
 
 def parse_query_params(args):
+    '''Determines whether the query was passed in via the command line 
+    or a file and handles the arguments appropriately'''
+
     if args.query_file is None:
         return parse_command_line_args(args)
     endpoint = 'snaptron'
@@ -94,12 +105,19 @@ def parse_query_params(args):
     return (queries,groups,endpoint)
 
 def calc_jir(a, b):
+    '''Short method to do the actual junctional inclusion ratio calculation 
+    a and b are the junction group coverages'''
+
     numer = (b - a)
     denom = (a + b) + 1
     return numer/float(denom)
 
 
 def junction_inclusion_ratio(args, results, group_list, sample_records):
+    '''Calculates the junction inclusion ratio across basic queries for 
+    for the groups of junctions specified in group_list for samples 
+    from sample_records; junction group coverages are reported in results per sample'''
+
     sample_stats = results['samples']
     group_a = group_list[0]
     group_b = group_list[1]
@@ -133,6 +151,8 @@ def junction_inclusion_ratio(args, results, group_list, sample_records):
     return output
 
 def track_exons(args, results, record, group, out_fh=None):
+    '''Store exons across basic queries for high level exon finding query'''
+
     exons = results['exons']
     if out_fh is not None:
         out_fh.write(record+"\n")
@@ -149,6 +169,8 @@ def track_exons(args, results, record, group, out_fh=None):
         exons[coord][type_].add(snid)
 
 def filter_exons(args, results, group_list, sample_records):
+    '''Filter by exon length'''
+
     #only used if filtering by length range
     (rlen1,rlen2) = (None,None)
     if args.exon_length is not None:
@@ -183,6 +205,9 @@ JIR_FUNC='jir'
 TRACK_EXONS_FUNC='exon'
 FUNCTION_TO_TYPE={TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared'}
 def count_samples_per_group(args, results, record, group, out_fh=None):
+    '''Tracks shared status of samples which appear across basic queries (junctions)
+    as well as annotation status of junctions; organized by junction group'''
+
     sample_stats = results['samples']
     if out_fh is not None:
         out_fh.write(record+"\n")
@@ -230,6 +255,8 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
             sample_stats[sample_id][group]=1
 
 def tissue_specificity(args, results, group_list, sample_records):
+    '''Process results across basic queries to get tissue specificity values'''
+
     sample_stats = results['samples']
     output = []
     sys.stdout.write("group\tsample_id\tshared\ttissue\n")
@@ -248,6 +275,11 @@ def tissue_specificity(args, results, group_list, sample_records):
     return output
 
 def report_shared_sample_counts(args, results, group_list, sample_records):
+    '''Outputs 1) shared sample counts per junction group
+    2) annotation status and sources per junction group
+    3) total # of groups with shared samples across member junctions
+    4) total # of groups whose member junctions are annotated'''
+
     output = []
     outputstr = "group\tshared_sample_counts\n"
     output.append(outputstr)
@@ -291,6 +323,9 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
     return output
 
 def download_sample_metadata(args):
+    '''Dump from Snaptron WSI the full sample metadata for a specific data compilation (source)
+    to a local file if not already cached'''
+
     sample_records = {}
     cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % args.datasrc)
     gfout = None
@@ -329,6 +364,8 @@ def download_sample_metadata(args):
     return sample_records
 
 def process_group(args, group_idx, groups, group_fhs, results):
+    '''General method called by process_queries to handle each junction group's results for a single basic query'''
+
     group = None
     group_fh = None
     if group_idx < len(groups):
@@ -353,6 +390,9 @@ def process_group(args, group_idx, groups, group_fhs, results):
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
 either_patt = re.compile(r'either=(\d)')
 def process_queries(args, query_params_per_region, groups, endpoint, function=None, local=False):
+    '''General function to process the high level queries (functions) via
+    one or more basic queries while tracking the results across basic queries'''
+
     results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}},'either':0}
     if FUNCTION_TO_TYPE[args.function] == 'shared':
         results['groups_seen']={}
