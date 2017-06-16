@@ -1,15 +1,13 @@
 #!/usr/bin/env python2.7
-
-
 import SciServer
 from SciServer import Authentication, LoginPortal, Config, CasJobs, SkyQuery, SciDrive, SkyServer
-import os;
-import sys;
-import json;
+import os
+import sys
+import json
 
 Authentication_loginName = 'snaptron2_agent';
-Authentication_loginPassword = ''
-token1 = Authentication.login(Authentication_loginName, Authentication_loginPassword);
+Authentication_loginPassword = 'snaptron2'
+token1 = Authentication.login(Authentication_loginName, Authentication_loginPassword)
 
 CasJobs_TestDatabase = "Snaptron2"
 CasJobs_TestQuery = "SELECT top 10 * from SnapCounts"
