@@ -5,3 +5,5 @@ python client/query_snaptron.py --region "chr11:82970135-82997450" --contains 1 
 python client/query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --function exon --exon-length 57-57 | wc -l
 python client/query_snaptron.py --query-file data/small_ssc_test.snap.tsv --function shared --datasrc gtex
 python client/query_snaptron.py --metadata "description:cortex" >cortex_samples.tsv
+python client/query_snaptron.py --query-file data/sox9_retained.hg38.tcga.snap.tsv --datasrc tcga --function jir > sox9_jir_samples.tsv
+python client/query_snaptron.py --query-file data/alk_alt_tss.hg19.snap.tsv --datasrc srav1 --function psi --psi-sort-group B_AltTSS

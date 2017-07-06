@@ -5,8 +5,8 @@
 # This file is part of Snaptron.
 #
 # Snaptron is free software: you can redistribute it and/or modify
-# it under the terms of the 
-# Creative Commons Attribution-NonCommercial 4.0 
+# it under the terms of the
+# Creative Commons Attribution-NonCommercial 4.0
 # International Public License ("CC BY-NC 4.0").
 #
 # Snaptron is distributed in the hope that it will be useful,
@@ -15,7 +15,7 @@
 # CC BY-NC 4.0 license for more details.
 #
 # You should have received a copy of the CC BY-NC 4.0 license
-# along with Snaptron.  If not, see 
+# along with Snaptron.  If not, see
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
 import sys
@@ -35,10 +35,10 @@ GTEX_TISSUE_COL=65
 
 fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
 def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
-    '''Called from parse_command_line_args; 
-    builds the Snaptron query string from one 
-    or more of the separate query arguments passed in fieldnames: 
-    region (range), filters (rfilter), metadata (sfilter), 
+    '''Called from parse_command_line_args;
+    builds the Snaptron query string from one
+    or more of the separate query arguments passed in fieldnames:
+    region (range), filters (rfilter), metadata (sfilter),
     and samples (sids)'''
 
     endpoint = 'snaptron'
@@ -84,7 +84,7 @@ def parse_command_line_args(args):
 
 
 def parse_query_params(args):
-    '''Determines whether the query was passed in via the command line 
+    '''Determines whether the query was passed in via the command line
     or a file and handles the arguments appropriately'''
 
     if args.query_file is None:
@@ -104,8 +104,58 @@ def parse_query_params(args):
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
 
+def percent_spliced_in(args, results, group_list, sample_records):
+    '''Calculates the PSI across basic queries for
+    for the groups of junctions specified in group_list for samples
+    from sample_records; junction group coverages are reported in results per sample'''
+
+    sample_stats = results['samples']
+    sample_scores = {}
+    for sample in sample_stats:
+        total = float(reduce(lambda x, y: x+y, sample_stats[sample].values(), 0))
+        sample_scores[sample] = {}
+        for group in group_list:
+            if group not in sample_stats[sample]:
+                sample_stats[sample][group] = 0
+                sample_scores[sample][group] = 0.0
+            else:
+                sample_scores[sample][group] = sample_stats[sample][group]/total
+    missing_sample_ids = set()
+    counter = 0
+    output = []
+    if not args.noheader:
+        psistr = ""
+        rawstr = ""
+        for group in group_list:
+            psistr += "%s PSI\t" % group
+            rawstr += "%s raw count\t" % group
+        sheader = sample_records["header"]
+        outstr = "%s%s%s\n" % (psistr,rawstr,sheader)
+        output.append(outstr)
+        sys.stdout.write(outstr)
+    #sort by first group in list unless otherwise specified
+    sort_group = group_list[0]
+    if args.psi_sort_group != None:
+       sort_group = args.psi_sort_group
+    for sample in sorted(sample_scores.keys(),key=lambda x: sample_scores[x][sort_group],reverse=True):
+        counter += 1
+        if args.limit > -1 and counter > args.limit:
+            break
+        scores = sample_scores[sample]
+        if sample not in sample_records:
+            missing_sample_ids.add(sample)
+            continue
+        psistr = "\t".join([str(scores[group]) for group in group_list])
+        rawstr = "\t".join([str(sample_stats[sample][group]) for group in group_list])
+        sample_record = sample_records[sample]
+        outstr = "%s\t%s\t%s\n" % (psistr,rawstr,sample_record)
+        output.append(outstr)
+        sys.stdout.write(outstr)
+    return output
+
+
 def calc_jir(a, b):
-    '''Short method to do the actual junctional inclusion ratio calculation 
+    '''Short method to do the actual junctional inclusion ratio calculation
     a and b are the junction group coverages'''
 
     numer = (b - a)
@@ -114,8 +164,8 @@ def calc_jir(a, b):
 
 
 def junction_inclusion_ratio(args, results, group_list, sample_records):
-    '''Calculates the junction inclusion ratio across basic queries for 
-    for the groups of junctions specified in group_list for samples 
+    '''Calculates the junction inclusion ratio across basic queries for
+    for the groups of junctions specified in group_list for samples
     from sample_records; junction group coverages are reported in results per sample'''
 
     sample_stats = results['samples']
@@ -202,8 +252,9 @@ def filter_exons(args, results, group_list, sample_records):
 TISSUE_SPECIFICITY_FUNC='ts'
 SHARED_SAMPLE_COUNT_FUNC='shared'
 JIR_FUNC='jir'
+PSI_FUNC='psi'
 TRACK_EXONS_FUNC='exon'
-FUNCTION_TO_TYPE={TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared'}
+FUNCTION_TO_TYPE={TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', PSI_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared'}
 def count_samples_per_group(args, results, record, group, out_fh=None):
     '''Tracks shared status of samples which appear across basic queries (junctions)
     as well as annotation status of junctions; organized by junction group'''
@@ -226,7 +277,7 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
                 if annot_source not in results['annotations'][group]:
                     results['annotations'][group][annot_source] = [0,0]
                 results['annotations'][group][annot_source][results['either']-1] = 1
-    #get sample list 
+    #get sample list
     samples_ = fields[clsnapconf.SAMPLE_IDS_COL][1:].split(',')
     samples = [x.split(":")[0] for x in samples_]
     sample_covs = [x.split(":")[1] for x in samples_]
@@ -430,7 +481,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
     return results
 
 
-compute_functions={JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None)}
+compute_functions={PSI_FUNC:(count_samples_per_group,percent_spliced_in),JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None)}
 def main(args):
     #parse original set of queries
     (query_params_per_region, groups, endpoint) = parse_query_params(args)
@@ -455,25 +506,25 @@ def create_parser(disable_header=False):
 
     parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more filters and/or metadata contraints specified and/or contained/either/within flag(s) turned on')
 
-    parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples; currently only supports Junction Inclusion Ratio "jir" and exon finding "exon"')
+    parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples: "jir", "psi", "ts", "ssc", and "exon"')
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
-    
+
+    parser.add_argument('--psi-sort-group', metavar='group name to sort samples by PSI value', type=str, default=None, help='when samples are returned in a PSI query, they will be sorted using the PSI value of this junction group in each sample')
+
     parser.add_argument('--limit', metavar='1', type=int, default=-1, help='# of records to return, defaults to all (-1)')
 
     parser.add_argument('--exon-length', metavar='50-60', type=str, default=None, help='length range of exons to look for within queried region when function is set to "exon", defaults to None (print out all exons in queried region when function is "exon")')
-    
-    
     parser.add_argument('--local', action='store_const', const=True, default=False, help='if running Snaptron modeules locally (skipping WSI)')
     parser.add_argument('--noraw', action='store_const', const=True, default=False, help='don\'t store output of WSI in tmpdir')
     parser.add_argument('--noheader', action='store_const', const=True, default=disable_header, help='turn off printing header in output')
-    
+
     parser.add_argument('--datasrc', metavar='data_source_namd', type=str, default=clsnapconf.DS_SRAV2, help='data source instance of Snaptron to use, check clsnapconf.py for list')
     return parser
 
 
 if __name__ == '__main__':
-    
+   
     parser = create_parser()
     #returned format (UCSC, and/or subselection of fields) option?
     #intersection or union of intervals option?
