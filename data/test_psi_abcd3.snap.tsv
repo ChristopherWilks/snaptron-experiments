@@ -1,0 +1,4 @@
+region	exact	filters	group
+chr1:94468008-94472172	1	strand=+&samples_count>=1	INCLUSION
+chr1:94472243-94475142	1	strand=+&samples_count>=1	INCLUSION
+chr1:94468008-94475142	1	strand=+&samples_count>=1	EXCLUSION

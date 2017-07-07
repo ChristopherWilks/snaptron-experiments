@@ -33,8 +33,14 @@ from SnaptronIteratorLocal import SnaptronIteratorLocal
 
 GTEX_TISSUE_COL=65
 
+TISSUE_SPECIFICITY_FUNC='ts'
+SHARED_SAMPLE_COUNT_FUNC='shared'
+JIR_FUNC='jir'
+PSI_FUNC='psi'
+TRACK_EXONS_FUNC='exon'
+
 fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
-def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
+def parse_query_argument(args, record, fieldnames, groups, groups_seen, header=True):
     '''Called from parse_command_line_args;
     builds the Snaptron query string from one
     or more of the separate query arguments passed in fieldnames:
@@ -53,11 +59,16 @@ def parse_query_argument(record, fieldnames, groups, groups_seen, header=True):
                 query.append("&".join(["%s=%s" % (fmap[field],x) for x in predicates]))
             elif field == 'group':
                 group = record[field]
-                groups.append(group)
                 #dont want to print the header multiple times for the same group
                 if group in groups_seen:
                     header = False
-                groups_seen.add(group)
+                    if args.function == PSI_FUNC:
+                        gidx = groups_seen[group]
+                        groups[gidx] = "A1_" + group
+                        group = "A2_" + group
+                else:
+                    groups_seen[group]=len(groups)
+                groups.append(group)
             else:
                 mapped_field = field
                 if field in fmap:
@@ -79,7 +90,7 @@ def parse_command_line_args(args):
         if field in vars(args) and vars(args)[field] is not None:
             fieldnames.append(field)
     groups = []
-    (query,endpoint) = parse_query_argument(vars(args), fieldnames, groups, set(), header=args.function is not None or not args.noheader)
+    (query,endpoint) = parse_query_argument(args, vars(args), fieldnames, groups, {}, header=args.function is not None or not args.noheader)
     return (["&".join(query)], groups, endpoint)
 
 
@@ -92,17 +103,30 @@ def parse_query_params(args):
     endpoint = 'snaptron'
     queries = []
     groups = []
-    groups_seen = set()
+    groups_seen = {}
     with open(args.query_file,"r") as cfin:
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
         get_header = args.function is not None or not args.noheader
         for (i,record) in enumerate(creader):
-            (query, endpoint) = parse_query_argument(record, creader.fieldnames, groups, groups_seen, header=get_header)
+            (query, endpoint) = parse_query_argument(args, record, creader.fieldnames, groups, groups_seen, header=get_header)
             queries.append("&".join(query))
             if args.function is None:
                 get_header = False
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
+
+def calc_psi(sample_stat, group_list):
+    '''Calculates the simple PSI between 2 junction 
+    variants where one variant has 2 junctions (inclusion),
+    and the other has only one junction (exclusion).'''
+
+    ss = sample_stat
+    gl = group_list
+    mean_inclusion = (ss[gl[0]] + ss[gl[1]]) / 2.0
+    total = mean_inclusion + ss[gl[2]]
+    psi = mean_inclusion / float(total)
+    return ([psi, ss[gl[0]], ss[gl[1]], ss[gl[2]]])
+                
 
 def percent_spliced_in(args, results, group_list, sample_records):
     '''Calculates the PSI across basic queries for
@@ -110,34 +134,27 @@ def percent_spliced_in(args, results, group_list, sample_records):
     from sample_records; junction group coverages are reported in results per sample'''
 
     sample_stats = results['samples']
+    #only expect 3 groups for PSI, and order of A1,A2,B
+    #where A1 and A2 are inclusion groups, B is exclusion
     sample_scores = {}
     for sample in sample_stats:
-        total = float(reduce(lambda x, y: x+y, sample_stats[sample].values(), 0))
-        sample_scores[sample] = {}
         for group in group_list:
             if group not in sample_stats[sample]:
-                sample_stats[sample][group] = 0
-                sample_scores[sample][group] = 0.0
-            else:
-                sample_scores[sample][group] = sample_stats[sample][group]/total
+                sample_stats[sample][group]=0
+        sample_scores[sample] = calc_psi(sample_stats[sample], group_list)
     missing_sample_ids = set()
     counter = 0
     output = []
     if not args.noheader:
-        psistr = ""
         rawstr = ""
         for group in group_list:
-            psistr += "%s PSI\t" % group
             rawstr += "%s raw count\t" % group
         sheader = sample_records["header"]
-        outstr = "%s%s%s\n" % (psistr,rawstr,sheader)
+        outstr = "PSI\t%s%s\n" % (rawstr,sheader)
         output.append(outstr)
         sys.stdout.write(outstr)
-    #sort by first group in list unless otherwise specified
-    sort_group = group_list[0]
-    if args.psi_sort_group != None:
-       sort_group = args.psi_sort_group
-    for sample in sorted(sample_scores.keys(),key=lambda x: sample_scores[x][sort_group],reverse=True):
+    #sort by PSI
+    for sample in sorted(sample_scores.keys(),key=lambda x: sample_scores[x][0],reverse=True):
         counter += 1
         if args.limit > -1 and counter > args.limit:
             break
@@ -145,10 +162,9 @@ def percent_spliced_in(args, results, group_list, sample_records):
         if sample not in sample_records:
             missing_sample_ids.add(sample)
             continue
-        psistr = "\t".join([str(scores[group]) for group in group_list])
-        rawstr = "\t".join([str(sample_stats[sample][group]) for group in group_list])
+        rawstr = "\t".join([str(x) for x in sample_scores[sample][1:]])
         sample_record = sample_records[sample]
-        outstr = "%s\t%s\t%s\n" % (psistr,rawstr,sample_record)
+        outstr = "%s\t%s\t%s\n" % (str(sample_scores[sample][0]),rawstr,sample_record)
         output.append(outstr)
         sys.stdout.write(outstr)
     return output
@@ -249,11 +265,6 @@ def filter_exons(args, results, group_list, sample_records):
     return output
 
 
-TISSUE_SPECIFICITY_FUNC='ts'
-SHARED_SAMPLE_COUNT_FUNC='shared'
-JIR_FUNC='jir'
-PSI_FUNC='psi'
-TRACK_EXONS_FUNC='exon'
 FUNCTION_TO_TYPE={TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', PSI_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared'}
 def count_samples_per_group(args, results, record, group, out_fh=None):
     '''Tracks shared status of samples which appear across basic queries (junctions)
@@ -509,8 +520,6 @@ def create_parser(disable_header=False):
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples: "jir", "psi", "ts", "ssc", and "exon"')
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
-
-    parser.add_argument('--psi-sort-group', metavar='group name to sort samples by PSI value', type=str, default=None, help='when samples are returned in a PSI query, they will be sorted using the PSI value of this junction group in each sample')
 
     parser.add_argument('--limit', metavar='1', type=int, default=-1, help='# of records to return, defaults to all (-1)')
 
