@@ -524,7 +524,7 @@ def create_parser(disable_header=False):
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
     
-    parser.add_argument('--psi-min-reads', metavar='PSI=mean(inclusion_junction1,inclusion_junction2)/(mean(inclusion_junction1,inclusion_junction2) + exclusion_junction)', type=str, default=clsnapconf.PSI_MIN_READS, help='minimum # of reads required in total (denominator) when calculating the PSI, default is ' + str(clsnapconf.PSI_MIN_READS))
+    parser.add_argument('--psi-min-reads', metavar='PSI=mean(inclusion_junction1,inclusion_junction2)/(mean(inclusion_junction1,inclusion_junction2) + exclusion_junction)', type=int, default=clsnapconf.PSI_MIN_READS, help='minimum # of reads required in total (denominator) when calculating the PSI, default is ' + str(clsnapconf.PSI_MIN_READS))
 
     parser.add_argument('--limit', metavar='1', type=int, default=-1, help='# of records to return, defaults to all (-1)')
 
