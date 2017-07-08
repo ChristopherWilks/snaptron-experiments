@@ -115,17 +115,20 @@ def parse_query_params(args):
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
 
-def calc_psi(sample_stat, group_list):
+def calc_psi(args, sample_stat, group_list):
     '''Calculates the simple PSI between 2 junction 
     variants where one variant has 2 junctions (inclusion),
     and the other has only one junction (exclusion).'''
 
     ss = sample_stat
     gl = group_list
-    mean_inclusion = (ss[gl[0]] + ss[gl[1]]) / 2.0
-    total = mean_inclusion + ss[gl[2]]
+    (inclusion1,inclusion2,exclusion) = (sample_stat[group_list[0]],sample_stat[group_list[1]],sample_stat[group_list[2]])
+    mean_inclusion = (inclusion1 + inclusion2) / 2.0
+    total = mean_inclusion + exclusion
     psi = mean_inclusion / float(total)
-    return ([psi, ss[gl[0]], ss[gl[1]], ss[gl[2]]])
+    if inclusion1 == 0 or inclusion2 == 0 or total < args.psi_min_reads:
+        psi = -1.0
+    return ([psi,total,inclusion1,inclusion2,exclusion])
                 
 
 def percent_spliced_in(args, results, group_list, sample_records):
@@ -141,7 +144,7 @@ def percent_spliced_in(args, results, group_list, sample_records):
         for group in group_list:
             if group not in sample_stats[sample]:
                 sample_stats[sample][group]=0
-        sample_scores[sample] = calc_psi(sample_stats[sample], group_list)
+        sample_scores[sample] = calc_psi(args, sample_stats[sample], group_list)
     missing_sample_ids = set()
     counter = 0
     output = []
@@ -150,11 +153,11 @@ def percent_spliced_in(args, results, group_list, sample_records):
         for group in group_list:
             rawstr += "%s raw count\t" % group
         sheader = sample_records["header"]
-        outstr = "PSI\t%s%s\n" % (rawstr,sheader)
+        outstr = "PSI\ttotal_count\t%s%s\n" % (rawstr,sheader)
         output.append(outstr)
         sys.stdout.write(outstr)
     #sort by PSI
-    for sample in sorted(sample_scores.keys(),key=lambda x: sample_scores[x][0],reverse=True):
+    for sample in sorted(sample_scores.keys(),key=lambda x: sample_scores[x][:2],reverse=True):
         counter += 1
         if args.limit > -1 and counter > args.limit:
             break
@@ -520,6 +523,8 @@ def create_parser(disable_header=False):
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples: "jir", "psi", "ts", "ssc", and "exon"')
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
+    
+    parser.add_argument('--psi-min-reads', metavar='PSI=mean(inclusion_junction1,inclusion_junction2)/(mean(inclusion_junction1,inclusion_junction2) + exclusion_junction)', type=str, default=clsnapconf.PSI_MIN_READS, help='minimum # of reads required in total (denominator) when calculating the PSI, default is ' + str(clsnapconf.PSI_MIN_READS))
 
     parser.add_argument('--limit', metavar='1', type=int, default=-1, help='# of records to return, defaults to all (-1)')
 
