@@ -30,6 +30,7 @@ import re
 import clsnapconf
 from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 from SnaptronIteratorLocal import SnaptronIteratorLocal
+from SnaptronIteratorBulk import SnaptronIteratorBulk
 
 GTEX_TISSUE_COL=65
 
@@ -40,7 +41,7 @@ PSI_FUNC='psi'
 TRACK_EXONS_FUNC='exon'
 
 fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
-def parse_query_argument(args, record, fieldnames, groups, groups_seen, header=True):
+def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_group=False, header=True):
     '''Called from parse_command_line_args;
     builds the Snaptron query string from one
     or more of the separate query arguments passed in fieldnames:
@@ -48,8 +49,9 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, header=T
     and samples (sids)'''
 
     endpoint = 'snaptron'
-    query=[]
+    query=[None]
     fields_seen = set()
+    group = None
     for field in fieldnames:
         if len(record[field]) > 0:
             fields_seen.add(field)
@@ -78,6 +80,11 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, header=T
         endpoint = 'sample'
     if not header:
         query.append("header=0")
+    #either we got a group or we have to shift the list over by one
+    if inline_group and group is not None:
+        query[0] = "group=%s" % (group)
+    else:
+        query = query[1:]
     return (query,endpoint)
 
 
@@ -98,22 +105,35 @@ def parse_query_params(args):
     '''Determines whether the query was passed in via the command line
     or a file and handles the arguments appropriately'''
 
-    if args.query_file is None:
+    if args.query_file is None and args.bulk_query_file is None:
         return parse_command_line_args(args)
     endpoint = 'snaptron'
     queries = []
     groups = []
     groups_seen = {}
-    with open(args.query_file,"r") as cfin:
+    infile = args.query_file
+    bulk = False
+    if args.bulk_query_file is not None:
+        infile = args.bulk_query_file
+        bulk = True
+    with open(infile,"r") as cfin:
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
         get_header = args.function is not None or not args.noheader
         for (i,record) in enumerate(creader):
-            (query, endpoint) = parse_query_argument(args, record, creader.fieldnames, groups, groups_seen, header=get_header)
+            (query, endpoint) = parse_query_argument(args, record, creader.fieldnames, groups, groups_seen, inline_group=bulk, header=get_header)
             queries.append("&".join(query))
             if args.function is None:
                 get_header = False
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
+
+def process_bulk_queries(args):
+    (query_params_per_group, groups, endpoint) = parse_query_params(args)
+    #TODO: make gzip optional for output file
+    with open(args.bulk_query_file + ".snap_results.tsv", "w") as outfile:
+        for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
+            sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
+
 
 def calc_psi(args, sample_stat, group_list):
     '''Calculates the simple PSI between 2 junction 
@@ -494,9 +514,18 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
         group_fh.close()
     return results
 
+    
 
 compute_functions={PSI_FUNC:(count_samples_per_group,percent_spliced_in),JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None)}
 def main(args):
+    sample_records = {}
+    if args.function is not None and args.function != TRACK_EXONS_FUNC:
+        sample_records = download_sample_metadata(args)
+    #special handling for bulk, should attempt to refactor this in the future to
+    #be more streamlined
+    if args.bulk_query_file is not None:
+        process_bulk_queries(args)
+        return
     #parse original set of queries
     (query_params_per_region, groups, endpoint) = parse_query_params(args)
     #get original functions (if passed in)
@@ -505,9 +534,6 @@ def main(args):
     results = process_queries(args, query_params_per_region, groups, endpoint, function=count_function, local=args.local)
     #if either the user wanted the JIR to start with on some coordinate groups, do the JIR now
     if args.function:
-        sample_records = {}
-        if args.function != TRACK_EXONS_FUNC:
-            sample_records = download_sample_metadata(args)
         group_list = set()
         map(lambda x: group_list.add(x), groups)
         group_list = sorted(group_list)
@@ -519,6 +545,8 @@ def create_parser(disable_header=False):
         parser.add_argument("--%s" % field, metavar=settings[0], type=settings[1], default=settings[2], help=settings[3])
 
     parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more filters and/or metadata contraints specified and/or contained/either/within flag(s) turned on')
+    
+    parser.add_argument('--bulk-query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='Same format as --query-file but gets run with up to 50 queries at a time (better for lots of queries).  This is the path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more filters and/or metadata contraints specified and/or contained/either/within flag(s) turned on')
 
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples: "jir", "psi", "ts", "ssc", and "exon"')
 
@@ -544,7 +572,7 @@ if __name__ == '__main__':
     #intersection or union of intervals option?
 
     args = parser.parse_args()
-    if args.region is None and args.filters is None and args.metadata is None and args.query_file is None:
+    if args.region is None and args.filters is None and args.metadata is None and args.query_file is None and args.bulk_query_file is None:
         sys.stderr.write("Error: no discernible arguments passed in, exiting\n")
         parser.print_help()
         sys.exit(-1)
