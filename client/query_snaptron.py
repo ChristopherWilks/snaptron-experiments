@@ -39,6 +39,7 @@ SHARED_SAMPLE_COUNT_FUNC='shared'
 JIR_FUNC='jir'
 PSI_FUNC='psi'
 TRACK_EXONS_FUNC='exon'
+INTERSECTION_FUNC='intersection'
 
 fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
 def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_group=False, header=True):
@@ -239,6 +240,14 @@ def junction_inclusion_ratio(args, results, group_list, sample_records):
         sys.stdout.write(outstr)
     return output
 
+def intersect_junctions(args, results, record, group, out_fh=None):
+    '''Intersect current snaptron_ids (junction ids) with previous queries results.
+       If this is the last query in the group, do intersection but then print out results.
+    '''
+    fields = record.split('\t')
+    snid = fields[clsnapconf.INTRON_ID_COL]
+    return
+
 def track_exons(args, results, record, group, out_fh=None):
     '''Store exons across basic queries for high level exon finding query'''
 
@@ -288,7 +297,7 @@ def filter_exons(args, results, group_list, sample_records):
     return output
 
 
-FUNCTION_TO_TYPE={TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', PSI_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared'}
+FUNCTION_TO_TYPE={TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', PSI_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared',INTERSECTION_FUNC:'track-queries'}
 def count_samples_per_group(args, results, record, group, out_fh=None):
     '''Tracks shared status of samples which appear across basic queries (junctions)
     as well as annotation status of junctions; organized by junction group'''
@@ -474,7 +483,7 @@ def process_group(args, group_idx, groups, group_fhs, results):
 
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
 either_patt = re.compile(r'either=(\d)')
-def process_queries(args, query_params_per_region, groups, endpoint, function=None, local=False):
+def process_queries(args, query_params_per_region, groups, endpoint, count_function=None, local=False):
     '''General function to process the high level queries (functions) via
     one or more basic queries while tracking the results across basic queries'''
 
@@ -484,9 +493,16 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
         results['shared']={}
         results['annotated']={}
         results['annotations']={}
+    #used in intersected queries
+    if FUNCTION_TO_TYPE[args.function] == 'track-queries':
+        results['last_query']=False
+        results['jids']=set()
     first = True
     group_fhs = {}
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
+        jids = set()
+        if group_idx + 1 == len(query_params_per_region):
+            results['last_query']=True
         m = either_patt.search(query_param_string)
         if m is not None:
             results['either'] = int(m.group(1))
@@ -497,8 +513,20 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
         if args.noheader:
             counter = 0
         for record in sIT:
-            if function is not None:
-                function(args, results, record, group, out_fh=group_fh)
+            if count_function is not None:
+                count_function(args, results, record, group, out_fh=group_fh)
+            elif args.function == INTERSECTION_FUNC:
+                fields_ = record.split('\t')
+                jid = fields_[clsnapconf.INTRON_ID_COL]
+                if jid == "snaptron_id":
+                    if not args.noheader:
+                        sys.stdout.write(record + "\n")
+                        continue
+                elif results['last_query'] and int(jid) in results['jids']:
+                    #ignore limits and group label on this output
+                    sys.stdout.write(record + "\n")
+                elif not results['last_query']:
+                    jids.add(int(jid))
             else:
                 counter += 1
                 if args.limit > -1 and counter > args.limit:
@@ -509,6 +537,12 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
                     if not args.noheader and first and counter == 0:
                         group_label = 'group\t'
                 sys.stdout.write("%s%s\n" % (group_label, record))
+        #keep intersecting the sets of junctions from each individual query
+        if args.function == INTERSECTION_FUNC and not results['last_query']:
+            if first:
+                results['jids'] = jids
+            else:
+                results['jids'] = results['jids'].intersection(jids)
         first = False
     for (group,group_fh) in group_fhs.iteritems():
         group_fh.close()
@@ -516,7 +550,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, function=No
 
     
 
-compute_functions={PSI_FUNC:(count_samples_per_group,percent_spliced_in),JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None)}
+compute_functions={PSI_FUNC:(count_samples_per_group,percent_spliced_in),JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None),INTERSECTION_FUNC:(None,None)}
 def main(args):
     sample_records = {}
     if args.function is not None and args.function != TRACK_EXONS_FUNC:
@@ -531,9 +565,9 @@ def main(args):
     #get original functions (if passed in)
     (count_function, summary_function) = compute_functions[args.function]
     #process original queries
-    results = process_queries(args, query_params_per_region, groups, endpoint, function=count_function, local=args.local)
+    results = process_queries(args, query_params_per_region, groups, endpoint, count_function=count_function, local=args.local)
     #if either the user wanted the JIR to start with on some coordinate groups, do the JIR now
-    if args.function:
+    if args.function is not None and summary_function is not None:
         group_list = set()
         map(lambda x: group_list.add(x), groups)
         group_list = sorted(group_list)

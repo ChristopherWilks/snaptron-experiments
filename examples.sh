@@ -10,3 +10,5 @@ python client/query_snaptron.py --query-file data/sox9_retained.hg38.tcga.snap.t
 python client/query_snaptron.py --query-file data/test_psi_abcd3.snap.tsv --function psi
 
 python client/query_snaptron.py --bulk-query-file data/rel_splices.hg38.snap.tsv
+
+python client/query_snaptron.py --func intersection --query-file data/intersect_test.snap.tsv
