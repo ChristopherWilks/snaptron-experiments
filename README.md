@@ -94,6 +94,15 @@ The other two should complete within a minute.
 
 	* alk_alt_tss.hg38.tcga.jir_results.tsv
 
+4. Percent Spliced In (PSI)
+[Script](scripts/run_psi.sh)
+
+  Input: 
+  	[HG38 Example ABCD3 Cassette Exon](data/test_psi_abcd3.snap.tsv)
+	
+  Output:
+  	* test_psi_abcd3.snap.samples.tsv
+
 
 ## General Snaptron Client
 
