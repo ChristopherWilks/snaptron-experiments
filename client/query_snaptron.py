@@ -56,7 +56,6 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
     fields_seen = set()
     group = None
     for field in fieldnames:
-        assert record[field] is not None, (field, str(record))
         if len(record[field]) > 0:
             fields_seen.add(field)
             if field == 'filters' or field == 'metadata':
