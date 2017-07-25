@@ -97,11 +97,12 @@ The other two should complete within a minute.
 4. Percent Spliced In (PSI)
 [Script](scripts/run_psi.sh)
 
-  Input: 
-  	[HG38 Example ABCD3 Cassette Exon](data/test_psi_abcd3.snap.tsv)
-	
+  Input:
+
+	[HG38 Example ABCD3 Cassette Exon](data/test_psi_abcd3.snap.tsv)
+
   Output:
-  	* test_psi_abcd3.snap.samples.tsv
+	* test_psi_abcd3.snap.samples.tsv
 
 
 ## General Snaptron Client
