@@ -18,9 +18,6 @@
 # along with Snaptron.  If not, see 
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
-import sys
-import urllib2
-import httplib
 import clsnapconf
 
 class SnaptronIterator():

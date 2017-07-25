@@ -19,8 +19,12 @@
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
 import sys
-import urllib2
-import httplib
+try:
+    from urllib.request import urlopen
+    from http.client import IncompleteRead
+except ImportError:
+    from urllib2 import urlopen
+    from httplib import IncompleteRead
 from SnaptronIterator import SnaptronIterator
 import clsnapconf
 
@@ -42,14 +46,14 @@ class SnaptronIteratorHTTP(SnaptronIterator):
 
     def execute_query_string(self):
         sys.stderr.write("%s\n" % (self.query_string))
-        self.response = urllib2.urlopen(self.query_string)
+        self.response = urlopen(self.query_string)
         return self.response
 
     def fill_buffer(self):
         #extend parent version to catch HTTP specific error
         try:
             return SnaptronIterator.fill_buffer(self)
-        except httplib.IncompleteRead, ir:
+        except (IncompleteRead) as ir:
             sys.stderr.write(ir.partial)
             raise ir
 
