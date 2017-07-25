@@ -101,12 +101,22 @@ The other two should complete within a minute.
 
   Input:
 
-	[HG38 Example ABCD3 Cassette Exon](data/test_psi_abcd3.snap.tsv)
+	[HG38 Example ABCD3 Cassette Exon Input File](data/test_psi_abcd3.snap.tsv)
 
   Output:
 
 	* test_psi_abcd3.snap.samples.tsv
 
+5. Intersection (conjunction)
+[Script](scripts/run_intersection.sh)
+
+  Input:
+
+	[HG38 Double Query Input File](data/test_intersection.snap.tsv)
+
+  Output:
+
+	* test_intersection.snap.junctions.tsv
 
 ## General Snaptron Client
 
