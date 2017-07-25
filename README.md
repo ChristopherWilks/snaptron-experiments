@@ -71,6 +71,7 @@ The other two should complete within a minute.
 	[HG38 Input file](data/rel_splices.hg38.snap.tsv)
 
   Output:
+
 	* P-values writen to standard out
 
 	* rel_ts_list.tsv
@@ -88,6 +89,7 @@ The other two should complete within a minute.
 	[TCGA HG38 Input file](data/alk_alt_tss.hg38.tcga.snap.tsv)
 
   Output:
+
 	* alk_alt_tss.hg19.srav1.jir_results.tsv
 
 	* alk_alt_tss.hg38.gtex.jir_results.tsv
@@ -102,6 +104,7 @@ The other two should complete within a minute.
 	[HG38 Example ABCD3 Cassette Exon](data/test_psi_abcd3.snap.tsv)
 
   Output:
+
 	* test_psi_abcd3.snap.samples.tsv
 
 
