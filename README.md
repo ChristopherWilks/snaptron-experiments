@@ -18,7 +18,7 @@ is not found in the path.
 
 ## Analyses
 
-You can run all three analyses from the paper via this [script](./run_all.sh):
+You can run all three analyses + the psi and intersection functions from the paper via this [script](./run_all.sh):
 	
 	./run_all.sh > run_all.out 2>&1
 
