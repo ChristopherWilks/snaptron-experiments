@@ -21,10 +21,8 @@
 import sys
 import subprocess
 from SnaptronIterator import SnaptronIterator
-import clsnapconf
 
 SCRIPT_PATH='../'
-#SCRIPT_PATH=''
 ENDPOINTS={'snaptron':'snaptron.py','sample':'snample.py','annotation':'snannotation.py','density':'sdensity.py','breakpoint':'sbreakpoint.py'}
 
 class SnaptronIteratorLocal(SnaptronIterator):

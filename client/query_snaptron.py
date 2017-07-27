@@ -20,8 +20,10 @@
 
 import sys
 import os
-import urllib
-import urllib2
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib2 import urlopen
 import argparse
 import gzip
 import csv
@@ -131,8 +133,8 @@ def parse_query_params(args):
 def process_bulk_queries(args):
     (query_params_per_group, groups, endpoint) = parse_query_params(args)
     #TODO: make gzip optional for output file
-    with open(args.bulk_query_file + ".snap_results.tsv", "w") as outfile:
-        for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
+    with open(args.bulk_query_file + ".snap_results.tsv", "wb") as outfile:
+        for i in range(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
             sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
 
 
@@ -258,7 +260,7 @@ def track_exons(args, results, record, group, out_fh=None):
         return
     fields = record.split('\t')
     snid = fields[clsnapconf.INTRON_ID_COL]
-    for (type_,col) in {'start':clsnapconf.INTERVAL_START_COL,'end':clsnapconf.INTERVAL_END_COL}.iteritems():
+    for (type_,col) in {'start':clsnapconf.INTERVAL_START_COL,'end':clsnapconf.INTERVAL_END_COL}.items():
         coord = int(fields[col])
         if coord not in exons:
             exons[coord]={type_:set()}
@@ -437,7 +439,7 @@ def download_sample_metadata(args):
             return sample_records
         else:
             gfout = gzip.open(cache_file+".tmp","w")
-    response = urllib2.urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
+    response = urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
     all_records = response.read()
     all_records = all_records.split('\n')
     for (i,line) in enumerate(all_records):
@@ -544,7 +546,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
             else:
                 results['jids'] = results['jids'].intersection(jids)
         first = False
-    for (group,group_fh) in group_fhs.iteritems():
+    for (group,group_fh) in group_fhs.items():
         group_fh.close()
     return results
 
@@ -575,7 +577,7 @@ def main(args):
 
 def create_parser(disable_header=False):
     parser = argparse.ArgumentParser(description='Snaptron command line client')
-    for (field,settings) in clsnapconf.FIELD_ARGS.iteritems():
+    for (field,settings) in clsnapconf.FIELD_ARGS.items():
         parser.add_argument("--%s" % field, metavar=settings[0], type=settings[1], default=settings[2], help=settings[3])
 
     parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more filters and/or metadata contraints specified and/or contained/either/within flag(s) turned on')

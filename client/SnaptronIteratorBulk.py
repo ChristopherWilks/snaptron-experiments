@@ -19,12 +19,18 @@
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
 import sys
-import urllib
-import urllib2
-import httplib
+try:
+    from urllib.request import urlopen
+    from http.client import IncompleteRead
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
+    from urllib2 import urlopen
+    from httplib import IncompleteRead
 import base64
 from SnaptronIterator import SnaptronIterator
 import clsnapconf
+from builtins import bytes
 
 ENDPOINTS={'snaptron':'snaptron','sample':'samples','annotation':'annotations','density':'density','breakpoint':'breakpoint'}
 
@@ -41,16 +47,16 @@ class SnaptronIteratorBulk(SnaptronIterator):
 
     def construct_query_string(self):
         super_string = clsnapconf.BULK_QUERY_DELIMITER.join(self.query_param_string)
-        self.data_string = urllib.urlencode({"groups":base64.b64encode(super_string)})
+        self.data_string = urlencode({"groups":base64.b64encode(bytes(super_string, 'utf-8'))})
         self.query_string = "%s/%s/%s" % (self.SERVICE_URL,self.instance,self.ENDPOINTS[self.endpoint])
         return (self.query_string, self.data_string)
 
     def execute_query_string(self):
-        sys.stderr.write("%s\n" % (self.query_string))
-        self.response = urllib2.urlopen(url=self.query_string, data=self.data_string)
+        sys.stderr.write("%s, %s\n" % (self.query_string, self.data_string))
+        self.response = urlopen(url=self.query_string, data=bytes(self.data_string, 'utf-8'))
         #since we're doing bulk, just write out as fast as we can
         buf_ = self.response.read(self.buffer_size)
-        while(buf_ != None and buf_ != ''):
+        while(buf_ != None and buf_ != b''):
             self.outfile_handle.write(buf_)
             buf_ = self.response.read(self.buffer_size)
 
@@ -58,6 +64,6 @@ class SnaptronIteratorBulk(SnaptronIterator):
         #extend parent version to catch HTTP specific error
         try:
             return SnaptronIterator.fill_buffer(self)
-        except httplib.IncompleteRead, ir:
+        except (IncompleteRead) as ir:
             sys.stderr.write(ir.partial)
             raise ir
