@@ -546,7 +546,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
                 results['jids'] = results['jids'].intersection(jids)
         first = False
     #check if we have jids to query for (currently only in case of intersection function)
-    if len(results['jids']) > 0:
+    if 'jids' in results and len(results['jids']) > 0:
         query_param_strings = breakup_junction_id_query(results['jids'])
         for query_param_string in query_param_strings:
             sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
