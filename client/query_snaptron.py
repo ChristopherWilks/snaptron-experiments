@@ -480,6 +480,18 @@ def process_group(args, group_idx, groups, group_fhs, results):
             results['annotated'][group][results['groups_seen'][group]]=0
     return (group, group_fh)
 
+def breakup_junction_id_query(jids):
+    ln = len(jids)
+    queries = []
+    if ln > clsnapconf.ID_LIMIT:
+        jids = list(jids)
+        for i in xrange(0, ln, clsnapconf.ID_LIMIT):
+            idq = 'ids='+','.join([str(z) for z in jids[i:i+clsnapconf.ID_LIMIT]])
+            queries.append(idq)
+    else:
+        queries.append('ids='+','.join([str(z) for z in jids]))
+    return queries
+
 
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
 either_patt = re.compile(r'either=(\d)')
@@ -495,14 +507,11 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
         results['annotations']={}
     #used in intersected queries
     if FUNCTION_TO_TYPE[args.function] == 'track-queries':
-        results['last_query']=False
         results['jids']=set()
     first = True
     group_fhs = {}
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
         jids = set()
-        if group_idx + 1 == len(query_params_per_region):
-            results['last_query']=True
         m = either_patt.search(query_param_string)
         if m is not None:
             results['either'] = int(m.group(1))
@@ -517,16 +526,8 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
                 count_function(args, results, record, group, out_fh=group_fh)
             elif args.function == INTERSECTION_FUNC:
                 fields_ = record.split('\t')
-                jid = fields_[clsnapconf.INTRON_ID_COL]
-                if jid == "snaptron_id":
-                    if not args.noheader:
-                        sys.stdout.write(record + "\n")
-                        continue
-                elif results['last_query'] and int(jid) in results['jids']:
-                    #ignore limits and group label on this output
-                    sys.stdout.write(record + "\n")
-                elif not results['last_query']:
-                    jids.add(int(jid))
+                if fields_[clsnapconf.INTRON_ID_COL] != 'snaptron_id':
+                    jids.add(int(fields_[clsnapconf.INTRON_ID_COL]))
             else:
                 counter += 1
                 if args.limit > -1 and counter > args.limit:
@@ -538,12 +539,20 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
                         group_label = 'group\t'
                 sys.stdout.write("%s%s\n" % (group_label, record))
         #keep intersecting the sets of junctions from each individual query
-        if args.function == INTERSECTION_FUNC and not results['last_query']:
+        if args.function == INTERSECTION_FUNC:
             if first:
                 results['jids'] = jids
             else:
                 results['jids'] = results['jids'].intersection(jids)
         first = False
+    #check if we have jids to query for (currently only in case of intersection function)
+    if len(results['jids']) > 0:
+        query_param_strings = breakup_junction_id_query(results['jids'])
+        for query_param_string in query_param_strings:
+            sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
+            for record in sIT:
+                #ignore limits and group label on this output
+                sys.stdout.write(record + "\n")
     for (group,group_fh) in group_fhs.iteritems():
         group_fh.close()
     return results

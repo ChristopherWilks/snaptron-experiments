@@ -1,0 +1,3 @@
+region	filters	metadata	group
+chr2:178525989-178807423	samples_count<=10&coverage_sum>=3	description:cortex	TTN
+chr2:178525989-178807423	samples_count<=20&coverage_sum<=2	description:liver	TTN

@@ -11,4 +11,5 @@ python client/query_snaptron.py --query-file data/test_psi_abcd3.snap.tsv --func
 
 python client/query_snaptron.py --bulk-query-file data/rel_splices.hg38.snap.tsv
 
-python client/query_snaptron.py --func intersection --query-file data/intersect_test.snap.tsv
+python client/query_snaptron.py --func intersection --query-file data/test_intersection.snap.tsv > intersect1
+python client/query_snaptron.py --func intersection --query-file data/test_intersection2.snap.tsv > intersect2
