@@ -112,11 +112,11 @@ The other two should complete within a minute.
 
   Input:
 
-	[HG38 Double Query Input File](data/test_intersection.snap.tsv)
+	[HG38 Double Query Input File](data/test_intersection2.snap.tsv)
 
   Output:
 
-	* test_intersection.snap.junctions.tsv
+	* test_intersection2.snap.junctions.tsv
 
 ## General Snaptron Client
 
