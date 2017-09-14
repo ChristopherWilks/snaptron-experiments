@@ -416,6 +416,17 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
     sys.stderr.write(outputstr)
     return output
 
+def samples_changed(args,cache_file):
+    response = urllib2.urlopen("%s/%s/samples?check_for_update=1" % (clsnapconf.SERVICE_URL,args.datasrc))
+    remote_timestamp = response.read()
+    remote_timestamp.rstrip()
+    remote_timestamp = float(remote_timestamp)
+    stats = os.stat(cache_file)
+    local_timestamp = stats.st_mtime
+    if remote_timestamp > local_timestamp:
+        return True
+    return False
+
 def download_sample_metadata(args):
     '''Dump from Snaptron WSI the full sample metadata for a specific data compilation (source)
     to a local file if not already cached'''
@@ -424,7 +435,7 @@ def download_sample_metadata(args):
     cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % args.datasrc)
     gfout = None
     if clsnapconf.CACHE_SAMPLE_METADTA:
-        if os.path.exists(cache_file):
+        if os.path.exists(cache_file) and not samples_changed(args,cache_file):
             with gzip.open(cache_file,"r") as gfin:
                 for (i,line) in enumerate(gfin):
                     line = line.rstrip()
