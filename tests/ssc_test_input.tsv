@@ -1,0 +1,7 @@
+region	either	filters	group
+chr1:244380149-244380149	2	strand=+&samples_count>=1	C1orf100 non_validated
+chr1:244380263-244380263	1	strand=+&samples_count>=1	C1orf100 non_validated
+chr15:27159808-27159808	2	strand=-&samples_count>=1	AC136896.1 validated
+chr15:27159862-27159862	1	strand=-&samples_count>=1	AC136896.1 validated
+chr8:133106409-133106409	2	strand=+&samples_count>=1	TG_2 validated
+chr8:133106477-133106477	1	strand=+&samples_count>=1	TG_2 validated
