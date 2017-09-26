@@ -348,6 +348,7 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
         else:
             sample_stats[sample_id][group]=1
 
+
 def tissue_specificity(args, results, group_list, sample_records):
     '''Process results across basic queries to get tissue specificity values'''
 
