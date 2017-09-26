@@ -22,34 +22,35 @@ class TestSampleCountingPerGroup(unittest.TestCase):
 
     def setUp(self):
         pass
-    
+   
+    #SSC uses the core parts of the count_samples_per_group(...) method
     def test_ssc_count_samples_per_group(self):
         group = 'C1orf100 non_validated'
-        either = 2
-        results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}},'either':either}
-        results['groups_seen']={group:1}
-        results['shared']={}
-        results['annotated']={group:{}}
-        results['annotated'][group][results['groups_seen'][group]]=0
-        results['annotations']={group:{}}
-
         args = Namespace(function='shared')
-
-        with open('../tests/C1orf100.raw%d' % either,'r') as fin:
-            query_snaptron.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
-            query_snaptron.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
-            
-            self.assertEqual(test_data.C1orf100_results_first_time_through, results) 
         
-            #keep going to the end of the file
-            for line in fin:
-                query_snaptron.count_samples_per_group(args, results, line.rstrip(), group, out_fh=None)
+        #2 tests per modifier value (1 or 2)
+        for either in (1,2):
+            results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}},'either':either}
+            results['groups_seen']={group:1}
+            results['shared']={}
+            results['annotated']={group:{}}
+            results['annotated'][group][results['groups_seen'][group]]=0
+            results['annotations']={group:{}}
 
-            #now check the half-through results data structure
-            self.assertEqual(test_data.C1orf100_results_after_first_basic_query, results) 
+            with open('../tests/C1orf100.raw%d' % either,'r') as fin:
+                query_snaptron.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
+                query_snaptron.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
+               
+                #first record processed (after header) test
+                self.assertEqual(test_data.C1orf100_results_first_time_through[either], results) 
+            
+                #keep going to the end of the file
+                for line in fin:
+                    query_snaptron.count_samples_per_group(args, results, line.rstrip(), group, out_fh=None)
 
+                #now check the full results data structure
+                self.assertEqual(test_data.C1orf100_results_after_first_basic_query[either], results) 
 
-                
 
 class TestJIR(unittest.TestCase):
     
