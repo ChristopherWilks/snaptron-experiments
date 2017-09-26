@@ -1,0 +1,3 @@
+#KCNIP4
+http://snaptron.cs.jhu.edu/gtex/snaptron?regions=chr4:20763023-20763023&either=2&rfilter=coverage_sum>:1&rfilter=strand:-
+http://snaptron.cs.jhu.edu/gtex/snaptron?regions=chr4:20763098-20763098&either=1&rfilter=coverage_sum>:1&rfilter=strand:-&header=0
