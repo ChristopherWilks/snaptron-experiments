@@ -1,8 +1,9 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 import sys
 import unittest
 from argparse import Namespace
 import query_snaptron
+import test_data
 
 def setUpModule():
     pass
@@ -34,13 +35,21 @@ class TestSampleCountingPerGroup(unittest.TestCase):
 
         args = Namespace(function='shared')
 
-        with open('../tests/C1orf100.raw','r') as fin:
+        with open('../tests/C1orf100.raw%d' % either,'r') as fin:
             query_snaptron.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
             query_snaptron.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
+            
+            self.assertEqual(test_data.C1orf100_results_first_time_through, results) 
+        
+            #keep going to the end of the file
+            for line in fin:
+                query_snaptron.count_samples_per_group(args, results, line.rstrip(), group, out_fh=None)
 
-        first_time_through_results = {'annotated': {'C1orf100 non_validated': {1: 0}}, 'exons': {'start': {}, 'end': {}}, 'groups_seen': {'C1orf100 non_validated': 1}, 'either': 2, 'samples': {'1588': {'C1orf100 non_validated': 3}, '41135': {'C1orf100 non_validated': 2}, '16768': {'C1orf100 non_validated': 1}, '18048': {'C1orf100 non_validated': 2}, '13573': {'C1orf100 non_validated': 1}, '39148': {'C1orf100 non_validated': 1}, '26599': {'C1orf100 non_validated': 1}, '7538': {'C1orf100 non_validated': 4}, '3520': {'C1orf100 non_validated': 1}, '30111': {'C1orf100 non_validated': 1}}, 'queries': [], 'shared': {'C1orf100 non_validated': set([])}, 'annotations': {'C1orf100 non_validated': {}}}
-        self.assertEqual(first_time_through_results, results) 
+            #now check the half-through results data structure
+            self.assertEqual(test_data.C1orf100_results_after_first_basic_query, results) 
 
+
+                
 
 class TestJIR(unittest.TestCase):
     
