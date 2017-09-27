@@ -15,7 +15,8 @@ def tearDownModule():
 class TestSampleCountingPerGroup(unittest.TestCase):
     '''Test the count_samples_per_group(...) method
     which underlies many of the client high-level queries/functions
-    (TS, SSC, JIR, PSI)'''
+    (TS, SSC, JIR).  PSI and INTERSECTION require no special 
+    handling outside of what the above three do.'''
 
     #we'll also need to consider the 'either' modifier as another
     #source of potential bugs
@@ -96,6 +97,23 @@ class TestJIR(unittest.TestCase):
     
     def setUp(self):
         pass
+
+    #using TCGA as the datasrc
+    def test_junction_inclusion_ratio(self):
+        args = Namespace(function='jir',noheader=False,limit=-1,datasrc='tcga')
+        groups = ['A_NormalTSS', 'B_AltTSS'] 
+        group_list = set()
+        map(lambda x: group_list.add(x), groups)
+        group_list = sorted(group_list)
+
+        output = query_snaptron.junction_inclusion_ratio(args,test_data.jir_full_results,group_list,None)
+        with open("../tests/jir_tcga_stats_output.tsv","rb") as fin:
+            lines = fin.read()
+            lines = lines.split('\n')
+            lines = lines[:len(lines)-1]
+            lines = map(lambda x: x+"\n", lines)
+            self.assertEqual(lines, output)
+
 
 class TestSSC(unittest.TestCase):
     

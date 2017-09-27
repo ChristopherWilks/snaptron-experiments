@@ -203,10 +203,16 @@ def calc_jir(a, b):
     return numer/float(denom)
 
 
-def junction_inclusion_ratio(args, results, group_list, sample_records):
+def junction_inclusion_ratio(args, results, group_list, sample_records, print_output=True):
     '''Calculates the junction inclusion ratio across basic queries for
     for the groups of junctions specified in group_list for samples
     from sample_records; junction group coverages are reported in results per sample'''
+
+    no_sample_records = False
+    if sample_records is None:
+        sample_records = {}
+        sample_records["header"] = ""
+        no_sample_records = True
 
     sample_stats = results['samples']
     group_a = group_list[0]
@@ -231,7 +237,9 @@ def junction_inclusion_ratio(args, results, group_list, sample_records):
         if args.limit > -1 and counter > args.limit:
             break
         score = sample_scores[sample]
-        if sample not in sample_records:
+        if no_sample_records:
+            sample_records[sample]=""
+        elif sample not in sample_records:
             missing_sample_ids.add(sample)
             continue
         sample_record = sample_records[sample]
