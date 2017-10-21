@@ -3,7 +3,6 @@
 #some will always have 0 coverage
 
 library(RCurl)
-library(Matrix)
 library(GenomicRanges)
 
 #this is lifted from Leo Collado's snaptron_query(...) method in the recount2 package:
@@ -47,8 +46,8 @@ getSnaptronDataFrame<-function(url, verbose=FALSE)
   result$source_dataset_id <- as.integer(res[, 'source_dataset_id'])
 
   #start of cwilks' code; Leo might not want to own this part :)
-  nr<-dim(res)[1]
-  nc<-dim(res)[2]
+  nr<-nrow(res)
+  nc<-ncol(res)
   rows<-NULL
   cols<-NULL
   vals<-NULL
@@ -61,7 +60,7 @@ getSnaptronDataFrame<-function(url, verbose=FALSE)
     aa<-unlist(lapply(c2[[1]],function(x) { strsplit(x,':')[[1]][1] }))
     ab<-unlist(lapply(c2[[1]],function(x) { strsplit(x,':')[[1]][2] }))
     
-    rows<-c(rows,rep(i-1,length(aa[2:length(aa)])))
+    rows<-c(rows,rep(as.integer(res[i, 'snaptron_id']),length(aa[2:length(aa)])))
     cols<-c(cols,aa[2:length(aa)])
     vals<-c(vals,ab[2:length(ab)])
     i<-i+1
@@ -70,11 +69,13 @@ getSnaptronDataFrame<-function(url, verbose=FALSE)
   tt3<-e1-s1
   if(verbose) message(paste(tt3,"seconds to setup sample count matrix"))
   #start at 0 since the sample ID's do
-  #convert to sparseMatrix for expansion & storage benefits
-  result$sample_counts<-as.data.frame(as.matrix(sparseMatrix(i=rows,j=as.numeric(cols),x=as.numeric(vals),index1=FALSE)))
-  colnames(result$sample_counts)<-seq(from=0,to=dim(result$sample_counts)[2]-1)
-  return(result)
+  #convert to a sparse matrix representation in a data frame
+  sample_counts<-data.frame(rows,as.numeric(cols),as.numeric(vals),stringsAsFactors=FALSE)
+  colnames(sample_counts)<-c("junction","sample","coverage")
+  return(list("ranges"=result,"sample_counts"=sample_counts))
 }
 
 url<-'http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr6:1-514015&rfilter=samples_count>:100&header=0'
 sresults<-getSnaptronDataFrame(url,verbose=TRUE)
+str(sresults['ranges'])
+str(sresults['sample_counts'])
