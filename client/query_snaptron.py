@@ -49,7 +49,7 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
     region (range), filters (rfilter), metadata (sfilter),
     and samples (sids)'''
 
-    endpoint = 'snaptron'
+    endpoint = args.endpoint
     query=[None]
     fields_seen = set()
     group = None
@@ -77,8 +77,9 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
                 if field in fmap:
                     mapped_field = fmap[field]
                 query.append("%s=%s" % (mapped_field,record[field]))
+    #we're only making a query against the metadata
     if len(fields_seen) == 1 and "metadata" in fields_seen:
-        endpoint = 'sample'
+        endpoint = clsnapconf.SAMPLE_ENDPOINT
     if not header:
         query.append("header=0")
     #either we got a group or we have to shift the list over by one
@@ -93,7 +94,7 @@ def parse_command_line_args(args):
     '''Loop through arguments passed in on the command line and parse them'''
 
     fieldnames = []
-    endpoint = 'snaptron'
+    endpoint = args.endpoint
     for field in clsnapconf.FIELD_ARGS.keys():
         if field in vars(args) and vars(args)[field] is not None:
             fieldnames.append(field)
@@ -108,7 +109,7 @@ def parse_query_params(args):
 
     if args.query_file is None and args.bulk_query_file is None:
         return parse_command_line_args(args)
-    endpoint = 'snaptron'
+    endpoint = args.endpoint
     queries = []
     groups = []
     groups_seen = {}
@@ -542,6 +543,12 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
         if args.noheader:
             counter = 0
         for record in sIT:
+            #first check to see if 1) we're doing a gene expression query
+            #and 2) we have a exon count constraint
+            if args.exon_count > 0 and args.endpoint == clsnapconf.GENES_ENDPOINT:
+                fields_ = record.split('\t')
+                if int(fields_[clsnapconf.EXON_COUNT_COL]) < args.exon_count:
+                    continue
             if count_function is not None:
                 count_function(args, results, record, group, out_fh=group_fh)
             elif args.function == INTERSECTION_FUNC:
@@ -576,7 +583,6 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
     for (group,group_fh) in group_fhs.iteritems():
         group_fh.close()
     return results
-
     
 
 compute_functions={PSI_FUNC:(count_samples_per_group,percent_spliced_in),JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None),INTERSECTION_FUNC:(None,None)}
@@ -625,6 +631,8 @@ def create_parser(disable_header=False):
     parser.add_argument('--noheader', action='store_const', const=True, default=disable_header, help='turn off printing header in output')
 
     parser.add_argument('--datasrc', metavar='data_source_namd', type=str, default=clsnapconf.DS_SRAV2, help='data source instance of Snaptron to use, check clsnapconf.py for list')
+    parser.add_argument('--endpoint', metavar='endpoint_string', type=str, default='snaptron', help='endpoint to use ["%s"=>junctions, "%s"=>gene expression, "%s"=>exon expression]' % (clsnapconf.JX_ENDPOINT, clsnapconf.GENES_ENDPOINT, clsnapconf.EXONS_ENDPOINT))
+    parser.add_argument('--exon-count', metavar='5', type=int, default=0, help='number of exons required for any gene returned in gene expression queries, otherwise ignored')
     return parser
 
 
