@@ -28,6 +28,7 @@ import csv
 import re
 
 import clsnapconf
+import clsnaputil
 from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 from SnaptronIteratorLocal import SnaptronIteratorLocal
 from SnaptronIteratorBulk import SnaptronIteratorBulk
@@ -437,11 +438,12 @@ def samples_changed(args,cache_file):
         return True
     return False
 
-def download_sample_metadata(args):
+def download_sample_metadata(args, split=False):
     '''Dump from Snaptron WSI the full sample metadata for a specific data compilation (source)
     to a local file if not already cached'''
 
     sample_records = {}
+    sample_records_split = {}
     cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % args.datasrc)
     gfout = None
     if clsnapconf.CACHE_SAMPLE_METADTA:
@@ -451,11 +453,13 @@ def download_sample_metadata(args):
                     line = line.rstrip()
                     fields = line.split('\t')
                     sample_records[fields[0]]=line
+                    sample_records_split[fields[0]]=fields
                     if i == 0:
                         sample_records["header"]=line
             if '' in sample_records:
                 del sample_records['']
-            return sample_records
+                del sample_records_split['']
+            return (sample_records, sample_records_split)
         else:
             gfout = gzip.open(cache_file+".tmp","w")
     response = urllib2.urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
@@ -464,6 +468,7 @@ def download_sample_metadata(args):
     for (i,line) in enumerate(all_records):
         fields = line.split('\t')
         sample_records[fields[0]]=line
+        sample_records_split[fields[0]]=fields
         if i == 0:
             #remove lucene index type chars from header
             line = re.sub('_[itsf]\t','\t',line)
@@ -476,7 +481,8 @@ def download_sample_metadata(args):
         os.rename(cache_file+".tmp", cache_file)
     if '' in sample_records:
         del sample_records['']
-    return sample_records
+        del sample_records_split['']
+    return (sample_records, sample_records_split)
 
 def process_group(args, group_idx, groups, group_fhs, results):
     '''General method called by process_queries to handle each junction group's results for a single basic query'''
@@ -514,6 +520,7 @@ def breakup_junction_id_query(jids):
     return queries
 
 
+
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
 either_patt = re.compile(r'either=(\d)')
 def process_queries(args, query_params_per_region, groups, endpoint, count_function=None, local=False):
@@ -549,6 +556,8 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
                 fields_ = record.split('\t')
                 if int(fields_[clsnapconf.EXON_COUNT_COL]) < args.exon_count:
                     continue
+            if args.normalize:
+                record = clsnaputil.normalize_coverage(args, record)
             if count_function is not None:
                 count_function(args, results, record, group, out_fh=group_fh)
             elif args.function == INTERSECTION_FUNC:
@@ -588,8 +597,9 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
 compute_functions={PSI_FUNC:(count_samples_per_group,percent_spliced_in),JIR_FUNC:(count_samples_per_group,junction_inclusion_ratio),TRACK_EXONS_FUNC:(track_exons,filter_exons),TISSUE_SPECIFICITY_FUNC:(count_samples_per_group,tissue_specificity),SHARED_SAMPLE_COUNT_FUNC:(count_samples_per_group,report_shared_sample_counts),None:(None,None),INTERSECTION_FUNC:(None,None)}
 def main(args):
     sample_records = {}
-    if args.function is not None and args.function != TRACK_EXONS_FUNC:
-        sample_records = download_sample_metadata(args)
+    if (args.function is not None and args.function != TRACK_EXONS_FUNC) or args.normalize is not None:
+        (sample_records, sample_records_split) = download_sample_metadata(args,split=args.normalize is not None)
+        args.sample_records_split = sample_records_split
     #special handling for bulk, should attempt to refactor this in the future to
     #be more streamlined
     if args.bulk_query_file is not None:
@@ -633,6 +643,7 @@ def create_parser(disable_header=False):
     parser.add_argument('--datasrc', metavar='data_source_namd', type=str, default=clsnapconf.DS_SRAV2, help='data source instance of Snaptron to use, check clsnapconf.py for list')
     parser.add_argument('--endpoint', metavar='endpoint_string', type=str, default='snaptron', help='endpoint to use ["%s"=>junctions, "%s"=>gene expression, "%s"=>exon expression]' % (clsnapconf.JX_ENDPOINT, clsnapconf.GENES_ENDPOINT, clsnapconf.EXONS_ENDPOINT))
     parser.add_argument('--exon-count', metavar='5', type=int, default=0, help='number of exons required for any gene returned in gene expression queries, otherwise ignored')
+    parser.add_argument('--normalize', metavar='normalization_string', type=str, default=None, help='Normalize? and if so what method to use [None,recount]')
     return parser
 
 
