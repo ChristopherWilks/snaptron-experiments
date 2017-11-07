@@ -21,6 +21,7 @@
 import sys
 import argparse
 import gzip
+import math
 
 import clsnapconf
 
@@ -30,6 +31,17 @@ import clsnapconf
 
 NORMAL_RECOUNT_TARGET = 40 * 1000000
 
+def round_like_R(num, ndigits=0):
+    '''Attempt to do IEC 60559 rounding half-way cases to nearest even (what R uses) to be equivalent to recount''' 
+    p = 10**(max(0,ndigits-1))
+    absx = math.fabs(num*p)
+    y = math.floor(absx)
+    diff = absx - y
+    if diff > 0.5 or (diff == 0.5 and y % 2 != 0):
+        return math.copysign((y / p) + 1.0, num)
+    return math.copysign(y / p, num)
+
+
 def normalize_coverage(args, record):
     #TODO: support different normalization methods, one for gene ('recount')
     #and another for junctions (use total junction coverage?)
@@ -37,5 +49,5 @@ def normalize_coverage(args, record):
     fields = record.rstrip().split('\t')
     if fields[1] == 'snaptron_id':
         return record
-    fields[clsnapconf.SAMPLE_IDS_COL] = ','+",".join([x.split(':')[0]+":"+str((NORMAL_RECOUNT_TARGET * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][auc_col])) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') if x != '' and x.split(':')[0] in args.sample_records_split])
+    fields[clsnapconf.SAMPLE_IDS_COL] = ','+",".join([x.split(':')[0]+":"+str(int(round_like_R((NORMAL_RECOUNT_TARGET * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][auc_col])))) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') if x != '' and x.split(':')[0] in args.sample_records_split])
     return "\t".join(fields)
