@@ -13,3 +13,5 @@ python client/query_snaptron.py --bulk-query-file data/rel_splices.hg38.snap.tsv
 
 python client/query_snaptron.py --func intersection --query-file data/test_intersection.snap.tsv > intersect1
 python client/query_snaptron.py --func intersection --query-file data/test_intersection2.snap.tsv > intersect2
+
+python client/query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --filters "samples_count>=100&annotated=1" --endpoint genes --normalize recount | wc -l
