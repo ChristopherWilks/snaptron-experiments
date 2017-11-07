@@ -46,11 +46,10 @@ def round_like_R(num, ndigits=0):
 
 
 def normalize_coverage(args, record, scaling_factor=NORMAL_GENE_TARGET):
-    #TODO: support different normalization methods, one for gene ('recount')
-    #and another for junctions (use total junction coverage?)
     auc_col = clsnapconf.AUC_COL_MAP[args.datasrc]
     fields = record.rstrip().split('\t')
     if fields[1] == 'snaptron_id':
         return record
-    fields[clsnapconf.SAMPLE_IDS_COL] = ','+",".join([x.split(':')[0]+":"+str(int(round_like_R((scaling_factor * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][auc_col])))) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') if x != '' and x.split(':')[0] in args.sample_records_split])
+    fields[clsnapconf.SAMPLE_IDS_COL] = ','+",".join([y for y in [x.split(':')[0]+":"+str(int(round_like_R((scaling_factor * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][auc_col])))) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') if x != '' and x.split(':')[0] in args.sample_records_split] if y.split(':')[1] != "0"])
+    #fields[clsnapcopnf.SAMPLE_SUM_COL] = sum([int(x.split(':')[1]) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',')])
     return "\t".join(fields)
