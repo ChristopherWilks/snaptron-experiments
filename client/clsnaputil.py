@@ -31,8 +31,17 @@ import clsnapconf
 
 #recount's gene normalization scaling factor
 NORMAL_GENE_TARGET = 40 * 1000000
-#our junction scaling factor
-NORMAL_JUNCTION_TARGET = 1000 * 1000000
+#our junction scaling factor: 40 million 100-base reads
+NORMAL_JUNCTION_TARGET = NORMAL_GENE_TARGET * 100
+
+def median(mlist):
+    sl = len(mlist)
+    if sl == 0:
+        return None
+    s = sorted(mlist)
+    if sl % 2 == 0:
+        return (s[sl/2]+s[(sl/2)-1])/2.0
+    return s[sl/2] 
 
 def round_like_R(num, ndigits=0):
     '''Attempt to do IEC 60559 rounding half-way cases to nearest even (what R uses) to be equivalent to recount''' 
@@ -44,12 +53,18 @@ def round_like_R(num, ndigits=0):
         return math.copysign((y / p) + 1.0, num)
     return math.copysign(y / p, num)
 
-
 def normalize_coverage(args, record, scaling_factor=NORMAL_GENE_TARGET):
     auc_col = clsnapconf.AUC_COL_MAP[args.datasrc]
     fields = record.rstrip().split('\t')
     if fields[1] == 'snaptron_id':
         return record
-    fields[clsnapconf.SAMPLE_IDS_COL] = ','+",".join([y for y in [x.split(':')[0]+":"+str(int(round_like_R((scaling_factor * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][auc_col])))) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') if x != '' and x.split(':')[0] in args.sample_records_split] if y.split(':')[1] != "0"])
-    #fields[clsnapcopnf.SAMPLE_SUM_COL] = sum([int(x.split(':')[1]) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',')])
-    return "\t".join(fields)
+    fields[clsnapconf.SAMPLE_IDS_COL] = ",".join([y for y in [x.split(':')[0]+":"+str(int(round_like_R((scaling_factor * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][auc_col])))) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') if x != '' and x.split(':')[0] in args.sample_records_split] if y.split(':')[1] != "0"])
+    #need to recalculate summary stats with normalized (and possibly reduced) sample coverages
+    normalized_counts = [int(x.split(':')[1]) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',')]
+    fields[clsnapconf.SAMPLE_COUNT_COL] = len(normalized_counts)
+    fields[clsnapconf.SAMPLE_SUM_COL] = sum(normalized_counts)
+    fields[clsnapconf.SAMPLE_AVG_COL] = fields[clsnapconf.SAMPLE_SUM_COL]/float(fields[clsnapconf.SAMPLE_COUNT_COL])
+    fields[clsnapconf.SAMPLE_MED_COL] = float(median(normalized_counts))
+    fields[clsnapconf.SAMPLE_IDS_COL] = ',' + fields[clsnapconf.SAMPLE_IDS_COL]
+    
+    return "\t".join([str(x) for x in fields])

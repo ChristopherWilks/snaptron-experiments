@@ -37,6 +37,10 @@ FIELD_ARGS={'region':['"chr#:start-end"',str,None,'either a simple genomic regio
       'exact':['1',str,None,'search for only junctions which have both their genomic coordinates matching exactly the specified region\'s start/end coordinates'],
       'either':['2',str,None,'search for only junctions which have one or the other of their genomic coordinates within (inclusive) of the specified region, 1=left coordinte;2=right coordinate']}
 SAMPLE_IDS_COL=12
+SAMPLE_COUNT_COL=13
+SAMPLE_SUM_COL=14
+SAMPLE_AVG_COL=15
+SAMPLE_MED_COL=16
 INTRON_ID_COL=1
 INTERVAL_CHR_COL=2
 INTERVAL_START_COL=3
