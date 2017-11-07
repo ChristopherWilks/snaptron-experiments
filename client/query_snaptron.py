@@ -132,10 +132,13 @@ def parse_query_params(args):
 
 def process_bulk_queries(args):
     (query_params_per_group, groups, endpoint) = parse_query_params(args)
+    outfile = sys.stdout
+    if not args.bulk_query_stdout:
+        outfile = open(args.bulk_query_file + ".snap_results.tsv", "wb")
     #TODO: make gzip optional for output file
-    with open(args.bulk_query_file + ".snap_results.tsv", "w") as outfile:
-        for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
-            sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
+    for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
+        sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
+    outfile.close()
 
 
 def calc_psi(args, sample_stat, group_list):
@@ -629,6 +632,8 @@ def create_parser(disable_header=False):
     parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more filters and/or metadata contraints specified and/or contained/either/within flag(s) turned on')
     
     parser.add_argument('--bulk-query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='Same format as --query-file but gets run with up to 50 queries at a time (better for lots of queries).  This is the path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more filters and/or metadata contraints specified and/or contained/either/within flag(s) turned on')
+
+    parser.add_argument('--bulk-query-stdout', action='store_const', const=True, default=False, help='dump output of a bulk query to STDOUT instead of writing to a file')
 
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples: "jir", "psi", "ts", "ssc", and "exon"')
 

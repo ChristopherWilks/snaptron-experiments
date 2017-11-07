@@ -9,7 +9,7 @@ python client/query_snaptron.py --metadata "description:cortex" | wc -l
 python client/query_snaptron.py --query-file data/sox9_retained.hg38.tcga.snap.tsv --datasrc tcga --function jir | wc -l
 python client/query_snaptron.py --query-file data/test_psi_abcd3.snap.tsv --function psi | wc -l
 
-python client/query_snaptron.py --bulk-query-file data/rel_splices.hg38.snap.tsv | wc -l
+python client/query_snaptron.py --bulk-query-file data/rel_splices.hg38.snap.tsv --bulk-query-stdout | wc -l
 
 python client/query_snaptron.py --func intersection --query-file data/test_intersection.snap.tsv | wc -l
 python client/query_snaptron.py --func intersection --query-file data/test_intersection2.snap.tsv | wc -l
