@@ -1,0 +1,43 @@
+http://snaptron.cs.jhu.edu/srav1/snaptron?regions=chr2:29446395-30142858&contains=1&rfilter=strand:-
+http://snaptron.cs.jhu.edu/srav1/snaptron?regions=chr2:29416789-29446394&contains=1&rfilter=strand:-
+5641
+http://snaptron.cs.jhu.edu/srav2/snaptron?rfilter=samples_count>:100&rfilter=annotated:1&regions=chr2:29446395-30142858&contains=1
+10
+http://snaptron.cs.jhu.edu/srav2/snaptron?rfilter=samples_count>:7&rfilter=coverage_sum>:10&regions=chr11:82970135-82997450&contains=1&sfilter=description:cortex
+2
+http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr2:29446395-30142858&contains=1
+14
+http://snaptron.cs.jhu.edu/gtex/snaptron?regions=chr1:1879786-1879786&either=2&rfilter=strand:-&rfilter=samples_count>:1
+http://snaptron.cs.jhu.edu/gtex/snaptron?regions=chr1:1879903-1879903&either=1&rfilter=strand:-&rfilter=samples_count>:1&header=0
+http://snaptron.cs.jhu.edu/gtex/snaptron?regions=chr1:9664595-9664595&either=2&rfilter=strand:+&rfilter=samples_count>:1
+http://snaptron.cs.jhu.edu/gtex/snaptron?regions=chr1:9664759-9664759&either=1&rfilter=strand:+&rfilter=samples_count>:1&header=0
+http://snaptron.cs.jhu.edu/gtex/snaptron?regions=chr6:32831148-32831148&either=2&rfilter=strand:-&rfilter=samples_count>:1
+http://snaptron.cs.jhu.edu/gtex/snaptron?regions=chr6:32831182-32831182&either=1&rfilter=strand:-&rfilter=samples_count>:1&header=0
+total # of groups with shared samples:	3
+total # of groups with fully annotated splices:	2
+group	shared_sample_counts
+GNB1 validated	6244
+PIK3CD non_validated	723
+TAP2 validated	2722
+http://snaptron.cs.jhu.edu/srav2/samples?sfilter=description:cortex
+32
+http://snaptron.cs.jhu.edu/tcga/snaptron?regions=chr17:72121823-72122718&contains=1&rfilter=annotated:1
+http://snaptron.cs.jhu.edu/tcga/snaptron?regions=chr17:72122973-72123542&contains=1&rfilter=annotated:1
+10709
+http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr1:94468008-94472172&exact=1&rfilter=strand:+&rfilter=samples_count>:1
+http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr1:94472243-94475142&exact=1&rfilter=strand:+&rfilter=samples_count>:1&header=0
+http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr1:94468008-94475142&exact=1&rfilter=strand:+&rfilter=samples_count>:1
+1426
+http://snaptron.cs.jhu.edu/srav2/snaptron
+100
+http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count<:10&sfilter=description:cortex
+http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count<:10&sfilter=description:liver&header=0
+http://snaptron.cs.jhu.edu/srav2/snaptron?ids=14075564,14075782,14075847
+4
+http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr2:178525989-178807423&rfilter=samples_count<:10&rfilter=coverage_sum>:3&sfilter=description:cortex
+http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr2:178525989-178807423&rfilter=samples_count<:20&rfilter=coverage_sum<:2&sfilter=description:liver&header=0
+http://snaptron.cs.jhu.edu/srav2/snaptron?ids=44894143
+2
+http://snaptron.cs.jhu.edu/srav2/snaptron?rfilter=samples_count>:100&rfilter=annotated:1&regions=chr2:29446395-30142858&contains=1
+10
+http://snaptron.cs.jhu.edu/supermouse/genes?rfilter=samples_count>:100&rfilter=annotated:1&regions=chr2:29446395-30142858&contains=1

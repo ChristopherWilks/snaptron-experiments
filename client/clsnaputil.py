@@ -25,15 +25,6 @@ import math
 
 import clsnapconf
 
-#assumes you already have the AUCs
-#pulled out using:
-#wiggletools print non_unique_base_coverage.bw.auc AUC non_unique_base_coverage.bw
-
-#recount's gene normalization scaling factor
-NORMAL_GENE_TARGET = 40 * 1000000
-#our junction scaling factor: 40 million 100-base reads
-NORMAL_JUNCTION_TARGET = NORMAL_GENE_TARGET * 100
-
 def median(mlist):
     sl = len(mlist)
     if sl == 0:
@@ -53,12 +44,21 @@ def round_like_R(num, ndigits=0):
         return math.copysign((y / p) + 1.0, num)
     return math.copysign(y / p, num)
 
-def normalize_coverage(args, record, scaling_factor=NORMAL_GENE_TARGET):
-    auc_col = clsnapconf.AUC_COL_MAP[args.datasrc]
+#assumes you already have the AUCs and junction sum total coverages per sample
+#AUCs pulled out using:
+#wiggletools print non_unique_base_coverage.bw.auc AUC non_unique_base_coverage.bw
+def normalize_coverage(args, record, divisor_col, scaling_factor):
     fields = record.rstrip().split('\t')
     if fields[1] == 'snaptron_id':
         return record
-    fields[clsnapconf.SAMPLE_IDS_COL] = ",".join([y for y in [x.split(':')[0]+":"+str(int(round_like_R((scaling_factor * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][auc_col])))) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') if x != '' and x.split(':')[0] in args.sample_records_split] if y.split(':')[1] != "0"])
+    #do he full normalization + scaling here
+    fields[clsnapconf.SAMPLE_IDS_COL] = ",".join( \
+        [y for y in \
+         [x.split(':')[0]+":"+str(int(round_like_R( \
+             (scaling_factor * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][divisor_col])))) \
+          for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') \
+          if x != '' and x.split(':')[0] in args.sample_records_split] \
+         if y.split(':')[1] != "0"])
     #need to recalculate summary stats with normalized (and possibly reduced) sample coverages
     normalized_counts = [int(x.split(':')[1]) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',')]
     fields[clsnapconf.SAMPLE_COUNT_COL] = len(normalized_counts)

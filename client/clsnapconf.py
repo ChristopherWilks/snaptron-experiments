@@ -58,4 +58,20 @@ JX_ENDPOINT="snaptron"
 SAMPLE_ENDPOINT="sample"
 GENES_ENDPOINT="genes"
 EXONS_ENDPOINT="exons"
+#normalization related config parameters
+#recount's gene normalization scaling factor
+NORMAL_RECOUNT_GENE_TARGET = 40 * 1000000
+#our junction scaling factor: 40 million 100-base reads
+NORMAL_RECOUNT_JX_TARGET = NORMAL_RECOUNT_GENE_TARGET * 100
+#based on average junction coverage across 43332 SRAv2 samples, rounded
+NORMAL_JXCOV_TARGET = 3953678
+RECOUNT_NORM='recount'
+JX_NORM='jxcov'
+#map to the various scaling factors we can use depending on 1) normalization type and 2) endpoint (genes, junctions)
+RECOUNT_FACTOR_MAP={GENES_ENDPOINT:NORMAL_RECOUNT_GENE_TARGET,JX_ENDPOINT:NORMAL_RECOUNT_JX_TARGET}
+JX_FACTOR_MAP={JX_ENDPOINT:NORMAL_JXCOV_TARGET}
+NORM_FACTOR_MAP={RECOUNT_NORM:RECOUNT_FACTOR_MAP,JX_NORM:JX_FACTOR_MAP}
+#map to the various normalization dividers depending on 1) normalization type and 2) datasource
 AUC_COL_MAP={DS_SRAV2:78,DS_GTEX:308,DS_TCGA:11,DS_SUPERMOUSE:55,DS_ENCODE:37}
+JXCOV_COL_MAP={DS_SRAV2:90,DS_GTEX:320,DS_TCGA:859,DS_SUPERMOUSE:53,DS_ENCODE:-1}
+NORM_DIVISOR_COL_MAP={RECOUNT_NORM:AUC_COL_MAP,JX_NORM:JXCOV_COL_MAP}

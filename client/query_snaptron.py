@@ -555,9 +555,11 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
         counter = -1
         if args.noheader:
             counter = 0
-        normalization_scaling_factor = clsnaputil.NORMAL_JUNCTION_TARGET
-        if args.endpoint == clsnapconf.GENES_ENDPOINT:
-            normalization_scaling_factor = clsnaputil.NORMAL_GENE_TARGET
+        norm_scaling_factor = None
+        norm_divisor_col = None
+        if args.normalize:
+            norm_scaling_factor = clsnapconf.NORM_FACTOR_MAP[args.normalize][args.endpoint]
+            norm_divisor_col = clsnapconf.NORM_DIVISOR_COL_MAP[args.normalize][args.datasrc]
         for record in sIT:
             #first check to see if 1) we're doing a gene expression query
             #and 2) we have a exon count constraint
@@ -566,7 +568,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
                 if int(fields_[clsnapconf.EXON_COUNT_COL]) < args.exon_count:
                     continue
             if args.normalize:
-                record = clsnaputil.normalize_coverage(args, record, scaling_factor=normalization_scaling_factor)
+                record = clsnaputil.normalize_coverage(args, record, norm_divisor_col, norm_scaling_factor)
             if count_function is not None:
                 count_function(args, results, record, group, out_fh=group_fh)
             elif args.function == INTERSECTION_FUNC:
@@ -656,7 +658,7 @@ def create_parser(disable_header=False):
     parser.add_argument('--datasrc', metavar='data_source_namd', type=str, default=clsnapconf.DS_SRAV2, help='data source instance of Snaptron to use, check clsnapconf.py for list')
     parser.add_argument('--endpoint', metavar='endpoint_string', type=str, default='snaptron', help='endpoint to use ["%s"=>junctions, "%s"=>gene expression, "%s"=>exon expression]' % (clsnapconf.JX_ENDPOINT, clsnapconf.GENES_ENDPOINT, clsnapconf.EXONS_ENDPOINT))
     parser.add_argument('--exon-count', metavar='5', type=int, default=0, help='number of exons required for any gene returned in gene expression queries, otherwise ignored')
-    parser.add_argument('--normalize', metavar='normalization_string', type=str, default=None, help='Normalize? and if so what method to use [None,recount]')
+    parser.add_argument('--normalize', metavar='normalization_string', type=str, default='', help='Normalize? and if so what method to use [None,%s,%s]' % (clsnapconf.RECOUNT_NORM, clsnapconf.JX_NORM))
     return parser
 
 
