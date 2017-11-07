@@ -29,7 +29,10 @@ import clsnapconf
 #pulled out using:
 #wiggletools print non_unique_base_coverage.bw.auc AUC non_unique_base_coverage.bw
 
-NORMAL_RECOUNT_TARGET = 40 * 1000000
+#recount's gene normalization scaling factor
+NORMAL_GENE_TARGET = 40 * 1000000
+#our junction scaling factor
+NORMAL_JUNCTION_TARGET = 1000 * 1000000
 
 def round_like_R(num, ndigits=0):
     '''Attempt to do IEC 60559 rounding half-way cases to nearest even (what R uses) to be equivalent to recount''' 
@@ -42,12 +45,12 @@ def round_like_R(num, ndigits=0):
     return math.copysign(y / p, num)
 
 
-def normalize_coverage(args, record):
+def normalize_coverage(args, record, scaling_factor=NORMAL_GENE_TARGET):
     #TODO: support different normalization methods, one for gene ('recount')
     #and another for junctions (use total junction coverage?)
     auc_col = clsnapconf.AUC_COL_MAP[args.datasrc]
     fields = record.rstrip().split('\t')
     if fields[1] == 'snaptron_id':
         return record
-    fields[clsnapconf.SAMPLE_IDS_COL] = ','+",".join([x.split(':')[0]+":"+str(int(round_like_R((NORMAL_RECOUNT_TARGET * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][auc_col])))) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') if x != '' and x.split(':')[0] in args.sample_records_split])
+    fields[clsnapconf.SAMPLE_IDS_COL] = ','+",".join([x.split(':')[0]+":"+str(int(round_like_R((scaling_factor * float(x.split(':')[1]))/float(args.sample_records_split[x.split(':')[0]][auc_col])))) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') if x != '' and x.split(':')[0] in args.sample_records_split])
     return "\t".join(fields)

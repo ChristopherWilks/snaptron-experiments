@@ -549,6 +549,9 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
         counter = -1
         if args.noheader:
             counter = 0
+        normalization_scaling_factor = clsnaputil.NORMAL_JUNCTION_TARGET
+        if args.endpoint == clsnapconf.GENES_ENDPOINT:
+            normalization_scaling_factor = clsnaputil.NORMAL_GENE_TARGET
         for record in sIT:
             #first check to see if 1) we're doing a gene expression query
             #and 2) we have a exon count constraint
@@ -557,7 +560,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
                 if int(fields_[clsnapconf.EXON_COUNT_COL]) < args.exon_count:
                     continue
             if args.normalize:
-                record = clsnaputil.normalize_coverage(args, record)
+                record = clsnaputil.normalize_coverage(args, record, scaling_factor=normalization_scaling_factor)
             if count_function is not None:
                 count_function(args, results, record, group, out_fh=group_fh)
             elif args.function == INTERSECTION_FUNC:
