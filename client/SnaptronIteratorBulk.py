@@ -89,7 +89,7 @@ class SnaptronIteratorBulk(SnaptronIterator):
 
         return deco_retry
 
-    @retry(urllib2.HTTPError, tries=10, delay=2, backoff=2)
+    @retry(urllib2.HTTPError, tries=17, delay=2, backoff=2)
     def urlopen(self):
        return urllib2.urlopen(url=self.query_string, data=self.data_string)
 
