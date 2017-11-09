@@ -58,6 +58,7 @@ JX_ENDPOINT="snaptron"
 SAMPLE_ENDPOINT="sample"
 GENES_ENDPOINT="genes"
 EXONS_ENDPOINT="exons"
+BASES_ENDPOINT="bases"
 #normalization related config parameters
 #recount's gene normalization scaling factor
 NORMAL_RECOUNT_GENE_TARGET = 40 * 1000000
