@@ -73,6 +73,11 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
                 else:
                     groups_seen[group]=len(groups)
                 groups.append(group)
+            elif field == 'samples' and args.endpoint == clsnapconf.BASES_ENDPOINT:
+                #if the user wants to subselect samples in a base-level query
+                #switch the argument to use the fields approach, since all sample
+                #constraints are ignored/will error for base level queries
+                query.append("%s=%s" % ('fields',record[field]))
             else:
                 mapped_field = field
                 if field in fmap:
