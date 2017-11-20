@@ -41,3 +41,6 @@ http://snaptron.cs.jhu.edu/srav2/snaptron?ids=44894143
 http://snaptron.cs.jhu.edu/srav2/snaptron?rfilter=samples_count>:100&rfilter=annotated:1&regions=chr2:29446395-30142858&contains=1
 10
 http://snaptron.cs.jhu.edu/supermouse/genes?rfilter=samples_count>:100&rfilter=annotated:1&regions=chr2:29446395-30142858&contains=1
+http://snaptron.cs.jhu.edu/supermouse/snaptron?rfilter=strand:-&regions=chr4:156177442-156177442&either=1
+http://snaptron.cs.jhu.edu/supermouse/bases?regions=chr4:156177443-156177443&either=2
+5

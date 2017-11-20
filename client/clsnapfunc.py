@@ -20,6 +20,7 @@
 
 import sys
 import re
+from future.utils import viewitems
 
 import clsnapconf
 import clsnaputil
@@ -56,7 +57,7 @@ def calc_psi(args, sample_stat, group_list):
     mean_inclusion = (inclusion1 + inclusion2) / 2.0
     total = mean_inclusion + exclusion
     psi = mean_inclusion / float(total)
-    if inclusion1 == 0 or inclusion2 == 0 or total < args.psi_min_reads:
+    if inclusion1 == 0 or inclusion2 == 0 or total < args.min_count:
         psi = -1.0
     return ([psi,total,inclusion1,inclusion2,exclusion])
 
@@ -366,6 +367,9 @@ def report_splice_mates(args, results, group_list, sample_records):
         if sample_ids[i] not in totals:
             totals[sample_ids[i]] = 0
         totals[sample_ids[i]] += float(base_val)
+    
+    #filter out low values from denominator (totals)
+    totals = {sid:float(x) for sid,x in viewitems(totals) if float(x) >= args.min_count}
 
     samples = sorted(totals.keys(), key=int)
     sample_header = ",".join(samples)
@@ -373,7 +377,7 @@ def report_splice_mates(args, results, group_list, sample_records):
 
     #print out RI counts
     all_samples = {x:0 for x in samples}
-    all_samples.update({str(i):(float(base_val)/float(totals[str(i)])) for i,x in enumerate(base_vals) if float(x) != 0.0})
+    all_samples.update({str(i):(float(base_val)/float(totals[str(i)])) for i,x in enumerate(base_vals) if float(x) != 0.0 and str(i) in totals})
     filler_length = (clsnapconf.SAMPLE_IDS_COL - clsnapconf.INTERVAL_END_COL)
     sys.stdout.write("\t".join(base_range_fields)+('\t'*filler_length))
     sys.stdout.write(",".join([str(all_samples[s]) for s in samples])+"\n")
@@ -384,7 +388,7 @@ def report_splice_mates(args, results, group_list, sample_records):
         for jx_id in sorted(junctions.keys(), key=int):
             jx = junctions[jx_id]
             all_samples = {x:0 for x in samples}
-            all_samples.update({x.split(":")[0]:(int(x.split(":")[1])/float(totals[x.split(":")[0]])) for x in jx[clsnapconf.SAMPLE_IDS_COL].split(',')[1:]})
+            all_samples.update({x.split(":")[0]:(int(x.split(":")[1])/float(totals[x.split(":")[0]])) for x in jx[clsnapconf.SAMPLE_IDS_COL].split(',')[1:] if x.split(":")[0] in totals})
             sys.stdout.write("\t".join(jx[:clsnapconf.SAMPLE_IDS_COL])+"\t")
             sys.stdout.write(",".join([str(all_samples[s]) for s in samples])+"\n")
 
