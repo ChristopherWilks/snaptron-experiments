@@ -24,8 +24,80 @@ import argparse
 import gzip
 import math
 import urllib2
+import re
 
 import clsnapconf
+
+PSI_FUNC='psi'
+#splice event types
+#retained intron
+RI='ri'
+
+fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
+def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_group=False, header=True):
+    '''Called from parse_command_line_args;
+    builds the Snaptron query string from one
+    or more of the separate query arguments passed in fieldnames:
+    region (range), filters (rfilter), metadata (sfilter),
+    and samples (sids)'''
+
+    endpoint = args.endpoint
+    query=[None]
+    fields_seen = set()
+    group = None
+    for field in fieldnames:
+        if len(record[field]) > 0:
+            fields_seen.add(field)
+            if field == 'filters' or field == 'metadata':
+                predicates = re.sub("=",":",record[field])
+                predicates = predicates.split('&')
+                query.append("&".join(["%s=%s" % (fmap[field],x) for x in predicates]))
+            elif field == 'group':
+                group = record[field]
+                #dont want to print the header multiple times for the same group
+                if group in groups_seen:
+                    header = False
+                    if args.function == PSI_FUNC:
+                        gidx = groups_seen[group]
+                        groups[gidx] = "A1_" + group
+                        group = "A2_" + group
+                else:
+                    groups_seen[group]=len(groups)
+                groups.append(group)
+            elif field == 'samples' and args.endpoint == clsnapconf.BASES_ENDPOINT:
+                #if the user wants to subselect samples in a base-level query
+                #switch the argument to use the fields approach, since all sample
+                #constraints are ignored/will error for base level queries
+                query.append("%s=%s" % ('fields',record[field]))
+            else:
+                mapped_field = field
+                if field in fmap:
+                    mapped_field = fmap[field]
+                query.append("%s=%s" % (mapped_field,record[field]))
+    #we're only making a query against the metadata
+    if len(fields_seen) == 1 and "metadata" in fields_seen:
+        endpoint = clsnapconf.SAMPLE_ENDPOINT
+    if not header:
+        query.append("header=0")
+    #either we got a group or we have to shift the list over by one
+    if inline_group and group is not None:
+        query[0] = "group=%s" % (group)
+    else:
+        query = query[1:]
+    return (query,endpoint)
+
+
+def parse_command_line_args(args):
+    '''Loop through arguments passed in on the command line and parse them'''
+
+    fieldnames = []
+    endpoint = args.endpoint
+    for field in clsnapconf.FIELD_ARGS.keys():
+        if field in vars(args) and vars(args)[field] is not None:
+            fieldnames.append(field)
+    groups = []
+    (query,endpoint) = parse_query_argument(args, vars(args), fieldnames, groups, {}, header=args.function is not None or not args.noheader)
+    return (["&".join(query)], groups, endpoint)
 
 def breakup_junction_id_query(jids):
     ln = len(jids)
