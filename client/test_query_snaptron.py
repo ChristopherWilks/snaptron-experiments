@@ -2,7 +2,7 @@
 import sys
 import unittest
 from argparse import Namespace
-import query_snaptron
+import clsnapfunc as snf
 import test_data
 
 def setUpModule():
@@ -26,15 +26,15 @@ class TestSampleCountingPerGroup(unittest.TestCase):
     
     def general_test_first_and_full_processing(self, query_id, raw_file, args, group, results, first_results, full_results):
         with open(raw_file, 'r') as fin:
-            query_snaptron.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
-            query_snaptron.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
+            snf.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
+            snf.count_samples_per_group(args, results, fin.readline().rstrip(), group, out_fh=None)
            
             #first record processed (after header) test
             self.assertEqual(first_results, results) 
         
             #keep going to the end of the file
             for line in fin:
-                query_snaptron.count_samples_per_group(args, results, line.rstrip(), group, out_fh=None)
+                snf.count_samples_per_group(args, results, line.rstrip(), group, out_fh=None)
 
             #now check the full results data structure
             self.assertEqual(full_results, results) 
@@ -106,7 +106,7 @@ class TestJIR(unittest.TestCase):
         map(lambda x: group_list.add(x), groups)
         group_list = sorted(group_list)
 
-        output = query_snaptron.junction_inclusion_ratio(args,test_data.jir_full_results,group_list,None)
+        output = snf.junction_inclusion_ratio(args,test_data.jir_full_results,group_list,None)
         with open("./tests/jir_tcga_stats_output.tsv","rb") as fin:
             lines = fin.read()
             lines = lines.split('\n')

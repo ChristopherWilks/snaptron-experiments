@@ -19,11 +19,82 @@
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
 import sys
+import os
 import argparse
 import gzip
 import math
+import urllib2
 
 import clsnapconf
+
+def breakup_junction_id_query(jids):
+    ln = len(jids)
+    queries = []
+    if ln > clsnapconf.ID_LIMIT:
+        jids = list(jids)
+        for i in xrange(0, ln, clsnapconf.ID_LIMIT):
+            idq = 'ids='+','.join([str(z) for z in jids[i:i+clsnapconf.ID_LIMIT]])
+            queries.append(idq)
+    else:
+        queries.append('ids='+','.join([str(z) for z in jids]))
+    return queries
+
+def samples_changed(args,cache_file):
+    response = urllib2.urlopen("%s/%s/samples?check_for_update=1" % (clsnapconf.SERVICE_URL,args.datasrc))
+    remote_timestamp = response.read()
+    remote_timestamp.rstrip()
+    remote_timestamp = float(remote_timestamp)
+    stats = os.stat(cache_file)
+    local_timestamp = stats.st_mtime
+    if remote_timestamp > local_timestamp:
+        return True
+    return False
+
+def download_sample_metadata(args, split=False):
+    '''Dump from Snaptron WSI the full sample metadata for a specific data compilation (source)
+    to a local file if not already cached'''
+
+    sample_records = {}
+    sample_records_split = {}
+    cache_file = os.path.join(args.tmpdir,"snaptron_sample_metadata_cache.%s.tsv.gz" % args.datasrc)
+    gfout = None
+    if clsnapconf.CACHE_SAMPLE_METADTA:
+        if os.path.exists(cache_file) and not samples_changed(args,cache_file):
+            with gzip.open(cache_file,"r") as gfin:
+                for (i,line) in enumerate(gfin):
+                    line = line.rstrip()
+                    fields = line.split('\t')
+                    sample_records[fields[0]]=line
+                    sample_records_split[fields[0]]=fields
+                    if i == 0:
+                        sample_records["header"]=line
+            if '' in sample_records:
+                del sample_records['']
+                del sample_records_split['']
+            return (sample_records, sample_records_split)
+        else:
+            gfout = gzip.open(cache_file+".tmp","w")
+    response = urllib2.urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
+    all_records = response.read()
+    all_records = all_records.split('\n')
+    for (i,line) in enumerate(all_records):
+        fields = line.split('\t')
+        sample_records[fields[0]]=line
+        sample_records_split[fields[0]]=fields
+        if i == 0:
+            #remove lucene index type chars from header
+            line = re.sub('_[itsf]\t','\t',line)
+            line = re.sub('_[itsf]$','',line)
+            sample_records["header"]=line
+        if gfout is not None:
+            gfout.write("%s\n" % (line))
+    if gfout is not None:
+        gfout.close()
+        os.rename(cache_file+".tmp", cache_file)
+    if '' in sample_records:
+        del sample_records['']
+        del sample_records_split['']
+    return (sample_records, sample_records_split)
 
 def median(mlist):
     sl = len(mlist)
