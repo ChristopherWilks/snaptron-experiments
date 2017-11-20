@@ -56,7 +56,7 @@ class TestSampleCountingPerGroup(unittest.TestCase):
             results['either'] = either
             first_results = test_data.ts_results_first_time_through[either]
             full_results = test_data.ts_results_after_first_basic_query[either]
-            raw_file = '../tests/ts.raw%d' % either
+            raw_file = './tests/ts.raw%d' % either
             self.general_test_first_and_full_processing(either, raw_file, args, group, results, first_results, full_results)
 
 
@@ -67,7 +67,7 @@ class TestSampleCountingPerGroup(unittest.TestCase):
         for (idx,group) in enumerate(list(['A_NormalTSS','B_AltTSS'])):
             first_results = test_data.jir_results_first_time_through[group]
             full_results = test_data.jir_results_after_first_basic_query[group]
-            raw_file = '../tests/jir.raw%d' % (int(idx)+1)
+            raw_file = './tests/jir.raw%d' % (int(idx)+1)
             self.general_test_first_and_full_processing(group, raw_file, args, group, results, first_results, full_results)
             
 
@@ -89,7 +89,7 @@ class TestSampleCountingPerGroup(unittest.TestCase):
             results['either'] = either
             first_results = test_data.C1orf100_results_first_time_through[either]
             full_results = test_data.C1orf100_results_after_first_basic_query[either]
-            raw_file = '../tests/C1orf100.raw%d' % either
+            raw_file = './tests/C1orf100.raw%d' % either
             self.general_test_first_and_full_processing(either, raw_file, args, group, results, first_results, full_results)
 
 
@@ -107,7 +107,7 @@ class TestJIR(unittest.TestCase):
         group_list = sorted(group_list)
 
         output = query_snaptron.junction_inclusion_ratio(args,test_data.jir_full_results,group_list,None)
-        with open("../tests/jir_tcga_stats_output.tsv","rb") as fin:
+        with open("./tests/jir_tcga_stats_output.tsv","rb") as fin:
             lines = fin.read()
             lines = lines.split('\n')
             lines = lines[:len(lines)-1]
