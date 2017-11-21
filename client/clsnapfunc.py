@@ -334,6 +334,7 @@ def report_splice_mates(args, results, group_list, sample_records):
         computes the splice event score for every sample for
         each junction. This is the splice mate "reporter" function 
         for the more general sum_sample_coverage "compute" function.'''
+    subdelim='\t'
     totals = results['all_sample_sums']
     #do RI point query
     #curl "http://snaptron.cs.jhu.edu/supermouse/bases?regions=chr4:156177822-156178635"
@@ -372,15 +373,15 @@ def report_splice_mates(args, results, group_list, sample_records):
     totals = {sid:float(x) for sid,x in viewitems(totals) if float(x) >= args.min_count}
 
     samples = sorted(totals.keys(), key=int)
-    sample_header = ",".join(samples)
+    sample_header = subdelim.join(samples)
     sys.stdout.write("\t".join(results['header_fields']) + "\t" + sample_header+"\n")
 
     #print out RI counts
     all_samples = {x:0 for x in samples}
-    all_samples.update({str(i):(float(base_val)/float(totals[str(i)])) for i,x in enumerate(base_vals) if float(x) != 0.0 and str(i) in totals})
+    all_samples.update({str(i):(float(x)/totals[str(i)]) for i,x in enumerate(base_vals) if float(x) != 0.0 and str(i) in totals})
     filler_length = (clsnapconf.SAMPLE_IDS_COL - clsnapconf.INTERVAL_END_COL)
     sys.stdout.write("\t".join(base_range_fields)+('\t'*filler_length))
-    sys.stdout.write(",".join([str(all_samples[s]) for s in samples])+"\n")
+    sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
 
 #now calculate mate score for all junctions if an event type is not specified
     if not args.event_type:
@@ -390,7 +391,7 @@ def report_splice_mates(args, results, group_list, sample_records):
             all_samples = {x:0 for x in samples}
             all_samples.update({x.split(":")[0]:(int(x.split(":")[1])/float(totals[x.split(":")[0]])) for x in jx[clsnapconf.SAMPLE_IDS_COL].split(',')[1:] if x.split(":")[0] in totals})
             sys.stdout.write("\t".join(jx[:clsnapconf.SAMPLE_IDS_COL])+"\t")
-            sys.stdout.write(",".join([str(all_samples[s]) for s in samples])+"\n")
+            sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
 
 def sum_sample_coverage(args, results, record, group, out_fh=None):
     '''Sums coverage for every splice junction for every sample

@@ -43,4 +43,8 @@ http://snaptron.cs.jhu.edu/srav2/snaptron?rfilter=samples_count>:100&rfilter=ann
 http://snaptron.cs.jhu.edu/supermouse/genes?rfilter=samples_count>:100&rfilter=annotated:1&regions=chr2:29446395-30142858&contains=1
 http://snaptron.cs.jhu.edu/supermouse/snaptron?rfilter=strand:-&regions=chr4:156177442-156177442&either=1
 http://snaptron.cs.jhu.edu/supermouse/bases?regions=chr4:156177443-156177443&either=2
-5
+DataSource:Type	snaptron_id	chromosome	start	end	length	strand	annotated	left_motif	right_motif	left_annotated	right_annotated	517
+supermouse:B	-1	chr4	156177442	156177443								0.40625
+supermouse:I	230314	chr4	156177442	156177821	380	-	0	GT	AG	gC09,gC11,kG10,rG10:1	0	0
+supermouse:I	230315	chr4	156177442	156178086	645	-	0	GT	AG	gC09,gC11,kG10,rG10:1	0	0
+supermouse:I	230316	chr4	156177442	156178428	987	-	1	GT	AG	gC09,gC11,kG10,rG10:1	gC09,gC11,kG10,rG10:1	0.59375
