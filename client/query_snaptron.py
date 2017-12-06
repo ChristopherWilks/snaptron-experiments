@@ -78,7 +78,6 @@ def process_bulk_queries(args):
 
 def process_group(args, group_idx, groups, group_fhs, results):
     '''General method called by process_queries to handle each junction group's results for a single basic query'''
-
     group = None
     group_fh = None
     if group_idx < len(groups):

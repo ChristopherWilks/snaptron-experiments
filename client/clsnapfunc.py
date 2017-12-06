@@ -361,13 +361,13 @@ def report_splice_mates(args, results, group_list, sample_records):
     base_range_fields = base_vals[:clsnapconf.INTERVAL_END_COL]
     #a little hack to ensure the bases results line up with the junction columns
     base_range_fields[0]="%s\t-1" % base_range_fields[0]
-    base_vals = base_vals[clsnapconf.INTERVAL_END_COL:]
+    base_vals = [float(base_val) for base_val in base_vals[clsnapconf.INTERVAL_END_COL:]]
     for i, base_val in enumerate(base_vals):
-        if float(base_val) == 0.0:
+        if base_val == 0.0:
             continue
         if sample_ids[i] not in totals:
             totals[sample_ids[i]] = 0
-        totals[sample_ids[i]] += float(base_val)
+        totals[sample_ids[i]] += base_val
     
     #filter out low values from denominator (totals)
     totals = {sid:float(x) for sid,x in viewitems(totals) if float(x) >= args.min_count}
@@ -377,13 +377,14 @@ def report_splice_mates(args, results, group_list, sample_records):
     sys.stdout.write("\t".join(results['header_fields']) + "\t" + sample_header+"\n")
 
     #print out RI counts
+    sid_off = clsnapconf.BASE_SAMPLE_ID_OFFSETS[args.datasrc]
     all_samples = {x:0 for x in samples}
-    all_samples.update({str(i):(float(x)/totals[str(i)]) for i,x in enumerate(base_vals) if float(x) != 0.0 and str(i) in totals})
+    all_samples.update({str(i+sid_off):(x/totals[str(i+sid_off)]) for i,x in enumerate(base_vals) if x != 0.0 and str(i+sid_off) in totals})
     filler_length = (clsnapconf.SAMPLE_IDS_COL - clsnapconf.INTERVAL_END_COL)
     sys.stdout.write("\t".join(base_range_fields)+('\t'*filler_length))
     sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
 
-#now calculate mate score for all junctions if an event type is not specified
+    #now calculate mate score for all junctions if an event type is not specified
     if not args.event_type:
         junctions = results['junctions']
         for jx_id in sorted(junctions.keys(), key=int):
@@ -392,6 +393,7 @@ def report_splice_mates(args, results, group_list, sample_records):
             all_samples.update({x.split(":")[0]:(int(x.split(":")[1])/float(totals[x.split(":")[0]])) for x in jx[clsnapconf.SAMPLE_IDS_COL].split(',')[1:] if x.split(":")[0] in totals})
             sys.stdout.write("\t".join(jx[:clsnapconf.SAMPLE_IDS_COL])+"\t")
             sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
+
 
 def sum_sample_coverage(args, results, record, group, out_fh=None):
     '''Sums coverage for every splice junction for every sample
