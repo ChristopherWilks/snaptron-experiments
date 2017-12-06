@@ -363,23 +363,23 @@ def report_splice_mates(args, results, group_list, sample_records):
     base_range_fields[0]="%s\t-1" % base_range_fields[0]
     base_vals = [float(base_val) for base_val in base_vals[clsnapconf.INTERVAL_END_COL:]]
     for i, base_val in enumerate(base_vals):
-        if base_val == 0.0:
+        if base_val == 0:
             continue
         if sample_ids[i] not in totals:
             totals[sample_ids[i]] = 0
         totals[sample_ids[i]] += base_val
     
-    #filter out low values from denominator (totals)
-    totals = {sid:float(x) for sid,x in viewitems(totals) if float(x) >= args.min_count}
-
     samples = sorted(totals.keys(), key=int)
     sample_header = subdelim.join(samples)
     sys.stdout.write("\t".join(results['header_fields']) + "\t" + sample_header+"\n")
 
+    #filter out low values from denominator (totals), but keep for final output as 0's
+    totals = {sid:float(x) for sid,x in viewitems(totals) if float(x) >= args.min_count}
+
     #print out RI counts
     sid_off = clsnapconf.BASE_SAMPLE_ID_OFFSETS[args.datasrc]
     all_samples = {x:0 for x in samples}
-    all_samples.update({str(i+sid_off):(x/totals[str(i+sid_off)]) for i,x in enumerate(base_vals) if x != 0.0 and str(i+sid_off) in totals})
+    all_samples.update({str(sample_ids[i]):(x/totals[str(sample_ids[i])]) for i,x in enumerate(base_vals) if x != 0 and str(sample_ids[i]) in totals})
     filler_length = (clsnapconf.SAMPLE_IDS_COL - clsnapconf.INTERVAL_END_COL)
     sys.stdout.write("\t".join(base_range_fields)+('\t'*filler_length))
     sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
