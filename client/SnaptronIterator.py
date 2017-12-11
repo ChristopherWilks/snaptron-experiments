@@ -25,17 +25,28 @@ import clsnapconf
 
 class SnaptronIterator():
 
-    def __init__(self,query_param_string,instance,endpoint):
+    def __init__(self,query_param_strings,instances,endpoints):
         self.buffer_size = clsnapconf.BUFFER_SIZE_BYTES
-        self.query_param_string = query_param_string
-        self.instance = instance
-        self.endpoint = endpoint
+        #multiple queries can either be 1) multiple junction ranges (e.g. both sides of an exon) or 2) multiple types: junction range + base range
+        self.query_param_strings = query_param_strings
+        self.instances = instances
+        self.endpoints = endpoints
 
-        self.idx = -1
         self.total_count = 0
-        self.lines = []
+        self.query_idx = 0
+        self.__init_for_query__()
 
         self.next = self.__next__
+   
+    def __init_for_query__(self):
+        self.idx = -1
+        self.lines = []
+
+    def construct_query_string(self):
+        pass
+    
+    def execute_query_string(self):
+        pass
 
     def __iter__(self):
         return self
@@ -49,6 +60,12 @@ class SnaptronIterator():
             self.idx=0;
         if self.idx != 0 or lines_read > 0:
             return self.lines[self.idx]
+        self.query_idx += 1
+        if self.query_idx < len(self.query_param_strings):
+            self.__init_for_query__()
+            construct_query_string()
+            execute_query_string()
+            return self.__next__()
         raise StopIteration
 
     def fill_buffer(self):
@@ -67,3 +84,4 @@ class SnaptronIterator():
             buf_ = buf_[:-1]
         self.lines = buf_.split("\n")
         return len(self.lines)
+    

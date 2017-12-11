@@ -27,17 +27,22 @@ import clsnapconf
 
 class SnaptronIteratorHTTP(SnaptronIterator):
 
-    def __init__(self,query_param_string,instance,endpoint):
-        if endpoint == 'sample' or endpoint == 'annotation':
-            endpoint += 's'
-        SnaptronIterator.__init__(self,query_param_string,instance,endpoint) 
+    def __init__(self,query_param_strings,instances,endpoints):
+        endpoints_ = []
+        for endpoint in endpoints:
+            if endpoint == 'sample' or endpoint == 'annotation':
+                endpoints_.append(endpoint + 's')
+            else:
+                endpoints_.append(endpoint)
+        endpoints = endpoints_
+        SnaptronIterator.__init__(self,query_param_strings,instances,endpoints) 
 
         self.SERVICE_URL=clsnapconf.SERVICE_URL
         self.construct_query_string()
         self.execute_query_string()
 
     def construct_query_string(self):
-        self.query_string = "%s/%s/%s?%s" % (self.SERVICE_URL,self.instance,self.endpoint,self.query_param_string)
+        self.query_string = "%s/%s/%s?%s" % (self.SERVICE_URL,self.instances[self.query_idx],self.endpoints[self.query_idx],self.query_param_strings[self.query_idx])
         return self.query_string
 
     def execute_query_string(self):

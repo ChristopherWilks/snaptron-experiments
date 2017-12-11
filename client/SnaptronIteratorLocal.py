@@ -25,21 +25,22 @@ import clsnapconf
 
 SCRIPT_PATH='../'
 #SCRIPT_PATH=''
-ENDPOINTS={'snaptron':'snaptron.py','sample':'snample.py','annotation':'snannotation.py','density':'sdensity.py','breakpoint':'sbreakpoint.py'}
+ENDPOINTS={'snaptron':'snaptron.py','sample':'snample.py','annotation':'snannotation.py','breakpoint':'sbreakpoint.py'}
 
 class SnaptronIteratorLocal(SnaptronIterator):
 
-    def __init__(self,query_param_string,instance,endpoint):
-        SnaptronIterator.__init__(self,query_param_string,instance,endpoint) 
+    def __init__(self,query_param_strings,instances,endpoints):
+        SnaptronIterator.__init__(self,query_param_strings,instances,endpoints) 
         
-        self.construct_query_string(query_param_string,endpoint)
-        self.execute_query_string(self.cmd)
+        self.construct_query_string()
+        self.execute_query_string()
     
-    def construct_query_string(self,query_param_string,endpoint):
-        self.cmd = ['python','%s%s' % (SCRIPT_PATH,ENDPOINTS[endpoint]), query_param_string]
+    def construct_query_string(self):
+        self.cmd = ['python','%s%s' % (SCRIPT_PATH,ENDPOINTS[self.endpoints[self.query_idx]]), query_param_string[self.query_idx]]
         return self.cmd
 
-    def execute_query_string(self,query_string):
+    def execute_query_string(self):
+        query_string = self.cmd
         #sys.stderr.write("executing %s\n" % (query_string))
         self.subp = subprocess.Popen(query_string,shell=False,stderr=subprocess.PIPE,stdout=subprocess.PIPE,stdin=None)
         self.response = self.subp.stdout

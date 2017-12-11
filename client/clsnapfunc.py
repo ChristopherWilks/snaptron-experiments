@@ -352,9 +352,8 @@ def report_splice_mates(args, results, group_list, sample_records):
     args.region = '%s:%s-%s' % (chrom,str(coord),str(coord))
     args.either='2'
     (query_param_strings, groups, endpoint) = clsnaputil.parse_command_line_args(args)
-    use_local = False
     #assume one query
-    sIT = results['siterator'](query_param_strings[0], args.datasrc, clsnapconf.BASES_ENDPOINT)
+    sIT = results['siterator']([query_param_strings[0]], [args.datasrc], [clsnapconf.BASES_ENDPOINT])
     #expecting only 2 rows for this point query, the header and the base itself
     sample_ids = sIT.next().split('\t')[clsnapconf.INTERVAL_END_COL:]
     base_vals = sIT.next().split('\t')
@@ -411,7 +410,6 @@ def sum_sample_coverage(args, results, record, group, out_fh=None):
         results['header_fields']=fields[:clsnapconf.SAMPLE_IDS_COL]
         return
     samples = fields[clsnapconf.SAMPLE_IDS_COL][1:].split(',')
-    #results['sample_covs'][fields[clsnapconf.INTRON_ID_COL]] = [x.split(":") for x in samples]
     results['junctions'][fields[clsnapconf.INTRON_ID_COL]] = fields
     sample_covs = [x.split(":")[1] for x in samples]
     samples = [x.split(":")[0] for x in samples]

@@ -71,9 +71,8 @@ def process_bulk_queries(args):
             outfile = gzip.open(args.bulk_query_file + ".snap_results.tsv.gz", "wb")
         else:
             outfile = open(args.bulk_query_file + ".snap_results.tsv", "wb")
-    #TODO: make gzip optional for output file
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
-        sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
+        sIT = SnaptronIteratorBulk([query_params_per_group[i:i+clsnapconf.BULK_LIMIT]], [args.datasrc], [endpoint], [outfile])
     outfile.close()
 
 def process_group(args, group_idx, groups, group_fhs, results):
@@ -120,7 +119,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
         m = either_patt.search(query_param_string)
         if m is not None:
             results['either'] = int(m.group(1))
-        sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
+        sIT = iterator_map[local]([query_param_string], [args.datasrc], [endpoint])
         results['siterator'] = iterator_map[local]
         #assume we get a header in this case and don't count it against the args.limit
         (group, group_fh) = process_group(args, group_idx, groups, group_fhs, results)
@@ -134,7 +133,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
             norm_divisor_col = clsnapconf.NORM_DIVISOR_COL_MAP[args.normalize][args.datasrc]
         for record in sIT:
             #first check to see if 1) we're doing a gene expression query
-            #and 2) we have a exon count constraint
+            #and 2) we have an exon count constraint
             if args.exon_count > 0 and args.endpoint == clsnapconf.GENES_ENDPOINT:
                 fields_ = record.split('\t')
                 if int(fields_[clsnapconf.EXON_COUNT_COL]) < args.exon_count:
@@ -168,7 +167,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
     if 'jids' in results and len(results['jids']) > 0:
         query_param_strings = clsnaputil.breakup_junction_id_query(results['jids'])
         for query_param_string in query_param_strings:
-            sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
+            sIT = iterator_map[local]([query_param_string], [args.datasrc], [endpoint])
             for record in sIT:
                 #ignore limits and group label on this output
                 sys.stdout.write(record + "\n")

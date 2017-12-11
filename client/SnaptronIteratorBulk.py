@@ -32,19 +32,21 @@ ENDPOINTS={'snaptron':'snaptron','sample':'samples','annotation':'annotations','
 
 class SnaptronIteratorBulk(SnaptronIterator):
 
-    def __init__(self,query_param_string,instance,endpoint,outfile_handle):
-        SnaptronIterator.__init__(self,query_param_string,instance,endpoint) 
+    def __init__(self,query_param_strings,instances,endpoints,outfile_handles):
+        SnaptronIterator.__init__(self,query_param_strings,instances,endpoints) 
 
-        self.outfile_handle = outfile_handle
+        #one per query string
+        self.outfile_handles = outfile_handles
         self.SERVICE_URL=clsnapconf.SERVICE_URL
         self.ENDPOINTS=ENDPOINTS
         self.construct_query_string()
         self.execute_query_string()
 
     def construct_query_string(self):
-        super_string = clsnapconf.BULK_QUERY_DELIMITER.join(self.query_param_string)
+        super_string = clsnapconf.BULK_QUERY_DELIMITER.join(self.query_param_strings[self.query_idx])
         self.data_string = urllib.urlencode({"groups":base64.b64encode(super_string)})
-        self.query_string = "%s/%s/%s" % (self.SERVICE_URL,self.instance,self.ENDPOINTS[self.endpoint])
+        self.query_string = "%s/%s/%s" % (self.SERVICE_URL,self.instances[self.query_idx],self.ENDPOINTS[self.endpoints[self.query_idx]])
+        self.outfile_handle = self.outfile_handles[self.query_idx]
         return (self.query_string, self.data_string)
     
     def retry(ExceptionToCheck, tries=4, delay=3, backoff=2, logger=None):
