@@ -391,7 +391,7 @@ def report_splice_mates(args, results, group_list, sample_records):
         all_samples = {x:0 for x in samples}
         all_samples.update({str(sample_ids[i]):(x/totals[str(sample_ids[i])]) for i,x in enumerate(base_vals) if x != 0 and str(sample_ids[i]) in totals})
         filler_length = (clsnapconf.SAMPLE_IDS_COL - clsnapconf.INTERVAL_END_COL)
-        if group is not None > 0:
+        if group is not None:
             sys.stdout.write(group+'\t')
         sys.stdout.write("\t".join(results['base_coords'][group])+('\t'*filler_length))
         sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
@@ -403,7 +403,7 @@ def report_splice_mates(args, results, group_list, sample_records):
                 jx = junctions[jx_id]
                 all_samples = {x:0 for x in samples}
                 all_samples.update({x.split(":")[0]:(int(x.split(":")[1])/float(totals[x.split(":")[0]])) for x in jx[clsnapconf.SAMPLE_IDS_COL].split(',')[1:] if x.split(":")[0] in totals})
-                if group is not None > 0:
+                if group is not None:
                     sys.stdout.write(group+'\t')
                 sys.stdout.write("\t".join(jx[:clsnapconf.SAMPLE_IDS_COL])+"\t")
                 sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
