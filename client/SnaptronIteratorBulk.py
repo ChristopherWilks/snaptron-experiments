@@ -28,14 +28,20 @@ from functools import wraps
 from SnaptronIterator import SnaptronIterator
 import clsnapconf
 
-ENDPOINTS={'snaptron':'snaptron','sample':'samples','annotation':'annotations','density':'density','breakpoint':'breakpoint'}
+ENDPOINTS={clsnapconf.JX_ENDPOINT:clsnapconf.JX_ENDPOINT,clsnapconf.BASES_ENDPOINT:clsnapconf.BASES_ENDPOINT}
 
 class SnaptronIteratorBulk(SnaptronIterator):
 
-    def __init__(self,query_param_strings,instances,endpoints,outfile_handles):
+    def __init__(self,query_param_strings,instances,endpoints,outfile_handles,true_iterator=False):
+        #Bulk iterator doesn't support samples or annotations endpoints, so no need to remap names here
         SnaptronIterator.__init__(self,query_param_strings,instances,endpoints) 
 
         #one per query string
+        self.true_iterator = true_iterator
+        self.execute_query_string = self.__execute_query_string_to_out__
+        if true_iterator:
+            self.execute_query_string = self.__execute_query_string_to_return__
+        #outfiles are ignored if true_iterator is True
         self.outfile_handles = outfile_handles
         self.SERVICE_URL=clsnapconf.SERVICE_URL
         self.ENDPOINTS=ENDPOINTS
@@ -48,6 +54,9 @@ class SnaptronIteratorBulk(SnaptronIterator):
         self.query_string = "%s/%s/%s" % (self.SERVICE_URL,self.instances[self.query_idx],self.ENDPOINTS[self.endpoints[self.query_idx]])
         self.outfile_handle = self.outfile_handles[self.query_idx]
         return (self.query_string, self.data_string)
+
+    def next_query_ok(self):
+        return self.query_idx < len(self.query_param_strings[0])
     
     def retry(ExceptionToCheck, tries=4, delay=3, backoff=2, logger=None):
         """Retry calling the decorated function using an exponential backoff.
@@ -94,8 +103,13 @@ class SnaptronIteratorBulk(SnaptronIterator):
     @retry(urllib2.HTTPError, tries=17, delay=2, backoff=2)
     def urlopen(self):
        return urllib2.urlopen(url=self.query_string, data=self.data_string)
+    
+    def __execute_query_string_to_return__(self):
+        sys.stderr.write("%s\n" % (self.query_string))
+        self.response = self.urlopen()
+        return self.response
 
-    def execute_query_string(self):
+    def __execute_query_string_to_out__(self):
         sys.stderr.write("%s\n" % (self.query_string))
         self.response = self.urlopen()
         #since we're doing bulk, just write out as fast as we can

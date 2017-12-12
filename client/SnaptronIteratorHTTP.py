@@ -49,6 +49,9 @@ class SnaptronIteratorHTTP(SnaptronIterator):
         sys.stderr.write("%s\n" % (self.query_string))
         self.response = urllib2.urlopen(self.query_string)
         return self.response
+    
+    def next_query_ok(self):
+        return self.query_idx < len(self.query_param_strings)
 
     def fill_buffer(self):
         #extend parent version to catch HTTP specific error

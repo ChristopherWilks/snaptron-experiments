@@ -323,11 +323,6 @@ def sum_sample_coverage(args, results, record, group, out_fh=None):
         across all junctions while also tracking per-sample coverage
         for each junction separately.'''
 
-    for field in sum_sample_coverage_fields:
-        if field not in results:
-            results[field] = {}
-        if group not in results[field]:
-            results[field][group] = {}
 
     if out_fh is not None:
         out_fh.write(record+"\n")
@@ -339,8 +334,17 @@ def sum_sample_coverage(args, results, record, group, out_fh=None):
     if fields[clsnapconf.INTRON_ID_COL] == 'chromosome':
         results['base_sample_ids']=fields[clsnapconf.INTERVAL_END_COL:]
         return
+    #need to extract the group from the field and then shift over by 1
+    if group == "":
+       group = fields[0]
+       #fields = fields[1:]
+    for field in sum_sample_coverage_fields:
+        if field not in results:
+            results[field] = {}
+        if group not in results[field]:
+            results[field][group] = {}
     #if we get back base coverage, handle differently, only expect one row
-    if fields[0][-1] == 'B':
+    if fields[0][-1] == 'B' or fields[1][:3] == 'chr':
         results['base_coords'][group] = fields[:clsnapconf.INTERVAL_END_COL]
         #a little hack to ensure the bases results line up with the junction columns
         results['base_coords'][group][0]="%s\t-1" % results['base_coords'][group][0]
@@ -357,7 +361,6 @@ def sum_sample_coverage(args, results, record, group, out_fh=None):
         results['all_sample_sums'][group][sid]+=int(sample_covs[i])
 
 
-region_patt = re.compile(r'^(chr[0-9a-zA-Z_\-]+):(\d+)-(\d+)$')
 def report_splice_mates(args, results, group_list, sample_records):
     '''Takes donor (acceptor) and finds all junctions originating
         from that site.  It also finds the coverage of the base
@@ -383,8 +386,8 @@ def report_splice_mates(args, results, group_list, sample_records):
         samples = sorted(totals.keys(), key=int)
         if print_header:
             sample_header = subdelim.join(samples)
-            if group is not None:
-                sys.stdout.write('group\t')
+            if group is not None and args.bulk_query_file is None:
+                sys.stdout.write('Group\t')
             sys.stdout.write("\t".join(results['header_fields']) + "\t" + sample_header+"\n")
             print_header = False
 
@@ -396,7 +399,7 @@ def report_splice_mates(args, results, group_list, sample_records):
         all_samples = {x:0 for x in samples}
         all_samples.update({str(sample_ids[i]):(x/totals[str(sample_ids[i])]) for i,x in enumerate(base_vals) if x != 0 and str(sample_ids[i]) in totals})
         filler_length = (clsnapconf.SAMPLE_IDS_COL - clsnapconf.INTERVAL_END_COL)
-        if group is not None:
+        if group is not None and args.bulk_query_file is None:
             sys.stdout.write(group+'\t')
         sys.stdout.write("\t".join(results['base_coords'][group])+('\t'*filler_length))
         sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
@@ -408,7 +411,7 @@ def report_splice_mates(args, results, group_list, sample_records):
                 jx = junctions[jx_id]
                 all_samples = {x:0 for x in samples}
                 all_samples.update({x.split(":")[0]:(int(x.split(":")[1])/float(totals[x.split(":")[0]])) for x in jx[clsnapconf.SAMPLE_IDS_COL].split(',')[1:] if x.split(":")[0] in totals})
-                if group is not None:
+                if group is not None and args.bulk_query_file is None:
                     sys.stdout.write(group+'\t')
                 sys.stdout.write("\t".join(jx[:clsnapconf.SAMPLE_IDS_COL])+"\t")
                 sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")

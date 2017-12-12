@@ -65,9 +65,10 @@ def parse_query_params(args):
     return (queries,groups,datasources,endpoints)
 
 
-def process_bulk_queries(args):
+def process_bulk_queries(args, count_function, summary_function, sample_records):
     (query_params_per_group, groups, datasources, endpoints) = parse_query_params(args)
     outfiles = []
+    #take the number of output files from the first set of subqueries
     for (i,subquery) in enumerate(query_params_per_group[0]):
         outfile = sys.stdout
         if not args.bulk_query_stdout:
@@ -76,13 +77,26 @@ def process_bulk_queries(args):
             else:
                 outfile = open(args.bulk_query_file + ".snap_results.%d.tsv" % i, "wb")
         outfiles.append(outfile)
+    results = {}
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
-        sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasources, endpoints, outfiles)
-    for outfile in outfiles:
-        outfile.close()
+        if args.function is None or not args.bulk_iterator:
+            sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasources, endpoints, outfiles, true_iterator=False)
+            continue
+        sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasources, endpoints, outfiles, true_iterator=True)
+        for record in sIT:
+            count_function(args, results, record, "")
+    if not args.bulk_query_stdout:
+        for outfile in outfiles:
+            outfile.close()
+    #run the function summary method now
+    if args.function is not None and args.bulk_iterator and summary_function is not None:
+        group_list = set()
+        map(lambda x: group_list.add(x), groups)
+        group_list = sorted(group_list)
+        output = summary_function(args,results,group_list,sample_records)
 
 
-def process_group(args, group_idx, groups, group_fhs, results):
+def init_group(args, group_idx, groups, group_fhs, results):
     '''General method called by process_queries to handle each junction group's results for a single basic query'''
     group = None
     group_fh = None
@@ -121,6 +135,7 @@ def process_queries(args, query_params_per_region, groups, datasources, endpoint
         results['jids']=set()
     first = True
     group_fhs = {}
+    #go through a group, one region at a time (only once for one-region groups)
     for (group_idx, query_param_strings) in enumerate(query_params_per_region):
         jids = set()
         #assume that if either is specified for one subquery it is for all
@@ -129,9 +144,10 @@ def process_queries(args, query_params_per_region, groups, datasources, endpoint
             results['either'] = int(m.group(1))
         sIT = iterator_map[local](query_param_strings, datasources, endpoints)
         results['siterator'] = iterator_map[local]
-        #assume we get a header in this case and don't count it against the args.limit
-        (group, group_fh) = process_group(args, group_idx, groups, group_fhs, results)
+        #get group by index, find group-specific filehandle (if defined), and initialize group-specific structures in results
+        (group, group_fh) = init_group(args, group_idx, groups, group_fhs, results)
         counter = -1
+        #assume we get a header in this case and don't count it against the args.limit
         if args.noheader:
             counter = 0
         norm_scaling_factor = None
@@ -189,15 +205,15 @@ def main(args):
     if (args.function is not None and args.function != clsnapconf.TRACK_EXONS_FUNC) or args.normalize is not None:
         (sample_records, sample_records_split) = clsnaputil.download_sample_metadata(args,split=args.normalize is not None)
         args.sample_records_split = sample_records_split
-    #special handling for bulk, should attempt to refactor this in the future to
-    #be more streamlined
-    if args.bulk_query_file is not None:
-        process_bulk_queries(args)
-        return
     #parse original set of queries
     (query_params_per_region, groups, datasources, endpoints) = parse_query_params(args)
     #get original functions (if passed in)
     (count_function, summary_function) = compute_functions[args.function]
+    #special handling for bulk, should attempt to refactor this in the future to
+    #be more streamlined
+    if args.bulk_query_file is not None:
+        process_bulk_queries(args, count_function, summary_function, sample_records)
+        return
     #process original queries
     results = process_queries(args, query_params_per_region, groups, datasources, endpoints, count_function=count_function, local=args.local)
     #if either the user wanted the JIR to start with on some coordinate groups, do the JIR now
@@ -219,6 +235,7 @@ def create_parser(disable_header=False):
     parser.add_argument('--bulk-query-gzip', action='store_const', const=True, default=False, help='gzip bulk query output file')
 
     parser.add_argument('--bulk-query-stdout', action='store_const', const=True, default=False, help='dump output of a bulk query to STDOUT instead of writing to a file')
+    parser.add_argument('--bulk-iterator', action='store_const', const=True, default=False, help='force bulk mode to process results rather than simply dumping to output')
 
     parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples: "jir", "psi", "ts", "ssc", "mates", and "exon"')
 
@@ -237,9 +254,6 @@ def create_parser(disable_header=False):
     parser.add_argument('--endpoint', metavar='endpoint_string', type=str, default='snaptron', help='endpoint to use ["%s"=>junctions, "%s"=>gene expression, "%s"=>exon expression, "%s"=>base expression]' % (clsnapconf.JX_ENDPOINT, clsnapconf.GENES_ENDPOINT, clsnapconf.EXONS_ENDPOINT, clsnapconf.BASES_ENDPOINT))
     parser.add_argument('--exon-count', metavar='5', type=int, default=0, help='number of exons required for any gene returned in gene expression queries, otherwise ignored')
     parser.add_argument('--normalize', metavar='normalization_string', type=str, default='', help='Normalize? and if so what method to use [None,%s,%s]' % (clsnapconf.RECOUNT_NORM, clsnapconf.JX_NORM))
-    #parser.add_argument('--donor', metavar='strand_string', type=str, default=None, help='shorthand for "mates" function starting with a donor on a particular strand [+|-]; must specify a region for the splice site via --region')
-    #parser.add_argument('--acceptor', metavar='strand_string', type=str, default=None, help='shorthand "mates" function starting with an acceptor on a particular strand [+|-]; must specify a region for the splice site via --region')
-    #parser.add_argument('--event-type', metavar='event_type_string', type=str, default=None, help='only used with when looking for splice mates; [%s=retained_intron], default is None' % clsnapconf.RETAINED_INTRON)
     return parser
 
 if __name__ == '__main__':
@@ -262,14 +276,4 @@ if __name__ == '__main__':
         sys.exit(-1)
     if not os.path.exists(args.tmpdir):
         os.mkdir(args.tmpdir)
-    #if args.donor:
-    #    args.function = snf.MATES_FUNC
-    #    strand = args.donor
-    #    args.filters='strand=%s' % strand
-    #    args.either=splice_mates_map['d'+strand]
-    #if args.acceptor:
-    #    args.function = snf.MATES_FUNC
-    #    strand = args.acceptor
-    #    args.filters='strand=%s' % strand
-    #    args.either=splice_mates_map['a'+strand]
     main(args)

@@ -48,6 +48,9 @@ class SnaptronIterator():
     def execute_query_string(self):
         pass
 
+    def next_query_ok(self):
+        pass
+
     def __iter__(self):
         return self
     
@@ -61,7 +64,7 @@ class SnaptronIterator():
         if self.idx != 0 or lines_read > 0:
             return self.lines[self.idx]
         self.query_idx += 1
-        if self.query_idx < len(self.query_param_strings):
+        if self.next_query_ok():
             self.__init_for_query__()
             self.construct_query_string()
             self.execute_query_string()

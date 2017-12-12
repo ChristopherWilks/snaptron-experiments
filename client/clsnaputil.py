@@ -104,7 +104,12 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, datasour
         query.append(either)
         #base query
         mapped_field = fmap['region']
-        queries.append(["%s=%s" % (mapped_field,record['region']),either])
+        second_query = []
+        if inline_group and group is not None:
+            second_query.append("group=%s" % (group))
+        second_query.append("%s=%s" % (mapped_field, record['region']))
+        second_query.append(either)
+        queries.append(second_query)
     queries = ["&".join(q) for q in queries]
     return queries
 
