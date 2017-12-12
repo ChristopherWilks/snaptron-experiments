@@ -368,6 +368,7 @@ def report_splice_mates(args, results, group_list, sample_records):
     subdelim='\t'
     if len(group_list) == 0:
         group_list = [None]
+    print_header = True
     for group in group_list:
         totals = results['all_sample_sums'][group]
         sample_ids = results['base_sample_ids']
@@ -380,8 +381,12 @@ def report_splice_mates(args, results, group_list, sample_records):
             totals[sample_ids[i]] += base_val
         
         samples = sorted(totals.keys(), key=int)
-        sample_header = subdelim.join(samples)
-        sys.stdout.write("\t".join(results['header_fields']) + "\t" + sample_header+"\n")
+        if print_header:
+            sample_header = subdelim.join(samples)
+            if group is not None:
+                sys.stdout.write('group\t')
+            sys.stdout.write("\t".join(results['header_fields']) + "\t" + sample_header+"\n")
+            print_header = False
 
         #filter out low values from denominator (totals), but keep for final output as 0's
         totals = {sid:float(x) for sid,x in viewitems(totals) if float(x) >= args.min_count}
