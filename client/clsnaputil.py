@@ -27,12 +27,13 @@ import urllib2
 import re
 
 import clsnapconf
+import clsnapfunc
 
-PSI_FUNC='psi'
 #splice event types
 #retained intron
 RI='ri'
 
+splice_mates_map={'d+':'1','d-':'2','a+':'2','a-':'1'}
 base_query_fields = set(['donor','acceptor'])
 fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
 def parse_query_argument(args, record, fieldnames, groups, groups_seen, datasources, endpoints, inline_group=False, header=True):
@@ -45,7 +46,8 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, datasour
     query=[None]
     fields_seen = set()
     group = None
-    intron_query = False
+    intron_strand = None
+    intron_strand_prefix = None
     region = None
     for field in fieldnames:
         if len(record[field]) > 0:
@@ -59,7 +61,7 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, datasour
                 #dont want to print the header multiple times for the same group
                 if group in groups_seen:
                     header = False
-                    if args.function == PSI_FUNC:
+                    if args.function == clsnapconf.PSI_FUNC:
                         gidx = groups_seen[group]
                         groups[gidx] = "A1_" + group
                         group = "A2_" + group
@@ -71,10 +73,12 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, datasour
                 #switch the argument to use the fields approach, since all sample
                 #constraints are ignored/will error for base level queries
                 query.append("%s=%s" % ('fields',record[field]))
-            elif field in base_query_fields or (field == 'event-type' and record[field] == clsnapconf.RETAINED_INTRON):
+            elif field in base_query_fields: #or (field == 'event-type' and record[field] == clsnapconf.RETAINED_INTRON):
                 endpoints.append(clsnapconf.BASES_ENDPOINT)
                 datasources.append(args.datasrc)
-                intron_query = True
+                intron_strand = record[field]
+                #use first letter of donor/acceptor
+                intron_strand_prefix = field[0]
             else:
                 mapped_field = field
                 if field in fmap:
@@ -90,14 +94,18 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, datasour
         query[0] = "group=%s" % (group)
     else:
         query = query[1:]
-    queries_ = []
-    queries_.append(query)
-    if intron_query:
-        mapped_field = fmap['region']
-        queries_.append(["%s=%s" % (mapped_field,record['region']),"either=%s" % (str(args.either))])
     queries = []
-    for q in queries_:
-        queries.append("&".join(q))
+    queries.append(query)
+    if intron_strand is not None:
+        args.function = clsnapconf.MATES_FUNC
+        either = 'either=%s' % str(splice_mates_map[intron_strand_prefix+intron_strand])
+        #update the junction query with the proper strand
+        query.append('rfilter=strand:%s' % intron_strand)
+        query.append(either)
+        #base query
+        mapped_field = fmap['region']
+        queries.append(["%s=%s" % (mapped_field,record['region']),either])
+    queries = ["&".join(q) for q in queries]
     return queries
 
 

@@ -18,6 +18,16 @@
 # along with Snaptron.  If not, see 
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
+GTEX_TISSUE_COL=65
+#TODO: switch to using a set of classes inheriting from a base SnapFunction class
+TISSUE_SPECIFICITY_FUNC='ts'
+SHARED_SAMPLE_COUNT_FUNC='shared'
+JIR_FUNC='jir'
+TRACK_EXONS_FUNC='exon'
+INTERSECTION_FUNC='intersection'
+MATES_FUNC='mates'
+PSI_FUNC='psi'
+
 DS_SRAV2='srav2'
 DS_SRAV1='srav1'
 DS_GTEX='gtex'

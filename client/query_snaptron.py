@@ -34,7 +34,7 @@ from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 from SnaptronIteratorLocal import SnaptronIteratorLocal
 from SnaptronIteratorBulk import SnaptronIteratorBulk
 
-compute_functions={snf.MATES_FUNC:(snf.sum_sample_coverage,snf.report_splice_mates),clsnaputil.PSI_FUNC:(snf.count_samples_per_group,snf.percent_spliced_in),snf.JIR_FUNC:(snf.count_samples_per_group,snf.junction_inclusion_ratio),snf.TRACK_EXONS_FUNC:(snf.track_exons,snf.filter_exons),snf.TISSUE_SPECIFICITY_FUNC:(snf.count_samples_per_group,snf.tissue_specificity),snf.SHARED_SAMPLE_COUNT_FUNC:(snf.count_samples_per_group,snf.report_shared_sample_counts),snf.INTERSECTION_FUNC:(None,None),None:(None,None)}
+compute_functions={clsnapconf.MATES_FUNC:(snf.sum_sample_coverage,snf.report_splice_mates),clsnapconf.PSI_FUNC:(snf.count_samples_per_group,snf.percent_spliced_in),clsnapconf.JIR_FUNC:(snf.count_samples_per_group,snf.junction_inclusion_ratio),clsnapconf.TRACK_EXONS_FUNC:(snf.track_exons,snf.filter_exons),clsnapconf.TISSUE_SPECIFICITY_FUNC:(snf.count_samples_per_group,snf.tissue_specificity),clsnapconf.SHARED_SAMPLE_COUNT_FUNC:(snf.count_samples_per_group,snf.report_shared_sample_counts),clsnapconf.INTERSECTION_FUNC:(None,None),None:(None,None)}
 
 
 def parse_query_params(args):
@@ -150,7 +150,7 @@ def process_queries(args, query_params_per_region, groups, datasources, endpoint
                 record = clsnaputil.normalize_coverage(args, record, norm_divisor_col, norm_scaling_factor)
             if count_function is not None:
                 count_function(args, results, record, group, out_fh=group_fh)
-            elif args.function == snf.INTERSECTION_FUNC:
+            elif args.function == clsnapconf.INTERSECTION_FUNC:
                 fields_ = record.split('\t')
                 if fields_[clsnapconf.INTRON_ID_COL] != 'snaptron_id':
                     jids.add(int(fields_[clsnapconf.INTRON_ID_COL]))
@@ -165,7 +165,7 @@ def process_queries(args, query_params_per_region, groups, datasources, endpoint
                         group_label = 'group\t'
                 sys.stdout.write("%s%s\n" % (group_label, record))
         #keep intersecting the sets of junctions from each individual query
-        if args.function == snf.INTERSECTION_FUNC:
+        if args.function == clsnapconf.INTERSECTION_FUNC:
             if first:
                 results['jids'] = jids
             else:
@@ -175,7 +175,7 @@ def process_queries(args, query_params_per_region, groups, datasources, endpoint
     if 'jids' in results and len(results['jids']) > 0:
         query_param_strings = clsnaputil.breakup_junction_id_query(results['jids'])
         for query_param_string in query_param_strings:
-            sIT = iterator_map[local]([query_param_string], [args.datasrc], [endpoint])
+            sIT = iterator_map[local]([query_param_string], datasources, endpoints)
             for record in sIT:
                 #ignore limits and group label on this output
                 sys.stdout.write(record + "\n")
@@ -186,7 +186,7 @@ def process_queries(args, query_params_per_region, groups, datasources, endpoint
 
 def main(args):
     sample_records = {}
-    if (args.function is not None and args.function != snf.TRACK_EXONS_FUNC) or args.normalize is not None:
+    if (args.function is not None and args.function != clsnapconf.TRACK_EXONS_FUNC) or args.normalize is not None:
         (sample_records, sample_records_split) = clsnaputil.download_sample_metadata(args,split=args.normalize is not None)
         args.sample_records_split = sample_records_split
     #special handling for bulk, should attempt to refactor this in the future to
@@ -242,7 +242,6 @@ def create_parser(disable_header=False):
     #parser.add_argument('--event-type', metavar='event_type_string', type=str, default=None, help='only used with when looking for splice mates; [%s=retained_intron], default is None' % clsnapconf.RETAINED_INTRON)
     return parser
 
-splice_mates_map={'d+':'1','d-':'2','a+':'2','a-':'1'}
 if __name__ == '__main__':
    
     parser = create_parser()
@@ -254,7 +253,7 @@ if __name__ == '__main__':
         sys.stderr.write("Error: no region-related arguments passed in, exiting\n")
         parser.print_help()
         sys.exit(-1)
-    if args.function == snf.TISSUE_SPECIFICITY_FUNC and 'gtex' not in args.datasrc:
+    if args.function == clsnapconf.TISSUE_SPECIFICITY_FUNC and 'gtex' not in args.datasrc:
         sys.stderr.write("Error: attempting to do tissue specificity (ts) on a non-GTEx Snaptron instance. Please change the SERVICE_URL setting in clsnapconf.py file to be the GTEx Snaptron instance before running this function; exiting\n")
         sys.exit(-1)
     if (args.donor or args.acceptor) and not args.region:
@@ -263,14 +262,14 @@ if __name__ == '__main__':
         sys.exit(-1)
     if not os.path.exists(args.tmpdir):
         os.mkdir(args.tmpdir)
-    if args.donor:
-        args.function = snf.MATES_FUNC
-        strand = args.donor
-        args.filters='strand=%s' % strand
-        args.either=splice_mates_map['d'+strand]
-    if args.acceptor:
-        args.function = snf.MATES_FUNC
-        strand = args.acceptor
-        args.filters='strand=%s' % strand
-        args.either=splice_mates_map['a'+strand]
+    #if args.donor:
+    #    args.function = snf.MATES_FUNC
+    #    strand = args.donor
+    #    args.filters='strand=%s' % strand
+    #    args.either=splice_mates_map['d'+strand]
+    #if args.acceptor:
+    #    args.function = snf.MATES_FUNC
+    #    strand = args.acceptor
+    #    args.filters='strand=%s' % strand
+    #    args.either=splice_mates_map['a'+strand]
     main(args)
