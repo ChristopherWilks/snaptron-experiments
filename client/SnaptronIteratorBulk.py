@@ -43,7 +43,7 @@ class SnaptronIteratorBulk(SnaptronIterator):
         self.execute_query_string()
 
     def construct_query_string(self):
-        super_string = clsnapconf.BULK_QUERY_DELIMITER.join(self.query_param_strings[self.query_idx])
+        super_string = clsnapconf.BULK_QUERY_DELIMITER.join([queries[self.query_idx] for queries in self.query_param_strings])
         self.data_string = urllib.urlencode({"groups":base64.b64encode(super_string)})
         self.query_string = "%s/%s/%s" % (self.SERVICE_URL,self.instances[self.query_idx],self.ENDPOINTS[self.endpoints[self.query_idx]])
         self.outfile_handle = self.outfile_handles[self.query_idx]

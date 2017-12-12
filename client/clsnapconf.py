@@ -30,13 +30,18 @@ BUFFER_SIZE_BYTES=1024*1024
 CACHE_SAMPLE_METADTA=True
 #TODO use python tmp
 TMPDIR='../snaptron_tmp'
+RETAINED_INTRON='ri'
 FIELD_ARGS={'region':['"chr#:start-end"',str,None,'either a simple genomic region (e.g. chr1:1-1000) or a gene fusion pair (e.g. EML4-ALK)'],
       'filters':['"coverage_sum>=5&annotated=1"',str,None,'one or more junction specific thresholds/filters'], 
       'metadata':['"design_description: cortex"',str,None,'one or more sample specific filters passed to Lucene (using the Lucene query langage)'],
       'samples':['"0,1,5,200"',str,None,'one or more comma delimited sample IDs filter junctions by'],
       'contains':['1',str,None,'search for only junctions which have both their genomic coordinates within (inclusive) the specified region'],
       'exact':['1',str,None,'search for only junctions which have both their genomic coordinates matching exactly the specified region\'s start/end coordinates'],
-      'either':['2',str,None,'search for only junctions which have one or the other of their genomic coordinates within (inclusive) of the specified region, 1=left coordinte;2=right coordinate']}
+      'either':['2',str,None,'search for only junctions which have one or the other of their genomic coordinates within (inclusive) of the specified region, 1=left coordinte;2=right coordinate'],
+      'donor':['"+" or "-"',str,None,'do donor calculation using specified strand'],
+      'acceptor':['"+" or "-"',str,None,'do acceptor calculation using specified strand'],
+      'event-type':['%s' % RETAINED_INTRON,str,None,'do donor/acceptor calculation (as specified) but only output retained intron values'],
+           }
 SAMPLE_IDS_COL=12
 SAMPLE_COUNT_COL=13
 SAMPLE_SUM_COL=14

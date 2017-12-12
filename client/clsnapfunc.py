@@ -326,6 +326,45 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
     sys.stderr.write(outputstr)
     return output
 
+
+def sum_sample_coverage(args, results, record, group, out_fh=None):
+    '''Sums coverage for every splice junction for every sample
+        across all junctions while also tracking per-sample coverage
+        for each junction separately.'''
+
+    if 'all_sample_sums' not in results:
+        results['all_sample_sums'] = {}
+    if 'junctions' not in results:
+        results['junctions'] = {}
+    if out_fh is not None:
+        out_fh.write(record+"\n")
+    fields = record.split('\t')
+    if fields[clsnapconf.INTRON_ID_COL] == 'snaptron_id':
+        results['header_fields']=fields[:clsnapconf.SAMPLE_IDS_COL]
+        return
+    #check for bases header
+    if fields[clsnapconf.INTRON_ID_COL] == 'chromosome':
+        results['base_sample_ids']=fields[clsnapconf.INTERVAL_END_COL:]
+        return
+    #if we get back base coverage, handle differently, only expect one row
+    if fields[0][-1] == 'B':
+        results['base_coords'] = fields[:clsnapconf.INTERVAL_END_COL]
+        #a little hack to ensure the bases results line up with the junction columns
+        results['base_coords'][0]="%s\t-1" % results['base_coords'][0]
+        results['base_vals'] = [float(base_val) for base_val in fields[clsnapconf.INTERVAL_END_COL:]] 
+        return
+    samples = fields[clsnapconf.SAMPLE_IDS_COL][1:].split(',')
+    results['junctions'][fields[clsnapconf.INTRON_ID_COL]] = fields
+    sample_covs = [x.split(":")[1] for x in samples]
+    samples = [x.split(":")[0] for x in samples]
+    #need to track counts for the denominator
+    for i,sid in enumerate(samples):
+        if sid not in results['all_sample_sums']:
+            results['all_sample_sums'][sid]=0
+        results['all_sample_sums'][sid]+=int(sample_covs[i])
+
+
+
 region_patt = re.compile(r'^(chr[0-9a-zA-Z_\-]+):(\d+)-(\d+)$')
 def report_splice_mates(args, results, group_list, sample_records):
     '''Takes donor (acceptor) and finds all junctions originating
@@ -339,28 +378,30 @@ def report_splice_mates(args, results, group_list, sample_records):
     #do RI point query
     #curl "http://snaptron.cs.jhu.edu/supermouse/bases?regions=chr4:156177822-156178635"
     #Null out params which won't be used by the call to the bases endpoint
-    args.filters=None
-    args.metadata=None
+    #args.filters=None
+    #args.metadata=None
     #force match to inclusive base 1 end
-    m = region_patt.search(args.region)
-    chrom = m.group(1)
-    start = int(m.group(2))
-    end = int(m.group(3))
-    coord = start - 1
-    if args.either == '1':
-        coord = end + 1
-    args.region = '%s:%s-%s' % (chrom,str(coord),str(coord))
-    args.either='2'
-    (query_param_strings, groups, endpoint) = clsnaputil.parse_command_line_args(args)
+    #m = region_patt.search(args.region)
+    #chrom = m.group(1)
+    #start = int(m.group(2))
+    #end = int(m.group(3))
+    #coord = start - 1
+    #if args.either == '1':
+    #    coord = end + 1
+    #args.region = '%s:%s-%s' % (chrom,str(coord),str(coord))
+    #args.either='2'
+    #(query_param_strings, groups, endpoint) = clsnaputil.parse_command_line_args(args)
     #assume one query
-    sIT = results['siterator']([query_param_strings[0]], [args.datasrc], [clsnapconf.BASES_ENDPOINT])
+    #sIT = results['siterator']([query_param_strings[0]], [args.datasrc], [clsnapconf.BASES_ENDPOINT])
     #expecting only 2 rows for this point query, the header and the base itself
-    sample_ids = sIT.next().split('\t')[clsnapconf.INTERVAL_END_COL:]
-    base_vals = sIT.next().split('\t')
-    base_range_fields = base_vals[:clsnapconf.INTERVAL_END_COL]
+    #sample_ids = sIT.next().split('\t')[clsnapconf.INTERVAL_END_COL:]
+    #base_vals = sIT.next().split('\t')
+    #base_range_fields = base_vals[:clsnapconf.INTERVAL_END_COL]
     #a little hack to ensure the bases results line up with the junction columns
-    base_range_fields[0]="%s\t-1" % base_range_fields[0]
-    base_vals = [float(base_val) for base_val in base_vals[clsnapconf.INTERVAL_END_COL:]]
+    #base_range_fields[0]="%s\t-1" % base_range_fields[0]
+    #base_vals = [float(base_val) for base_val in base_vals[clsnapconf.INTERVAL_END_COL:]]
+    sample_ids = results['base_sample_ids']
+    base_vals = results['base_vals']
     for i, base_val in enumerate(base_vals):
         if base_val == 0:
             continue
@@ -380,7 +421,7 @@ def report_splice_mates(args, results, group_list, sample_records):
     all_samples = {x:0 for x in samples}
     all_samples.update({str(sample_ids[i]):(x/totals[str(sample_ids[i])]) for i,x in enumerate(base_vals) if x != 0 and str(sample_ids[i]) in totals})
     filler_length = (clsnapconf.SAMPLE_IDS_COL - clsnapconf.INTERVAL_END_COL)
-    sys.stdout.write("\t".join(base_range_fields)+('\t'*filler_length))
+    sys.stdout.write("\t".join(results['base_coords'])+('\t'*filler_length))
     sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
 
     #now calculate mate score for all junctions if an event type is not specified
@@ -392,31 +433,5 @@ def report_splice_mates(args, results, group_list, sample_records):
             all_samples.update({x.split(":")[0]:(int(x.split(":")[1])/float(totals[x.split(":")[0]])) for x in jx[clsnapconf.SAMPLE_IDS_COL].split(',')[1:] if x.split(":")[0] in totals})
             sys.stdout.write("\t".join(jx[:clsnapconf.SAMPLE_IDS_COL])+"\t")
             sys.stdout.write(subdelim.join([str(all_samples[s]) for s in samples])+"\n")
-
-
-def sum_sample_coverage(args, results, record, group, out_fh=None):
-    '''Sums coverage for every splice junction for every sample
-        across all junctions while also tracking per-sample coverage
-        for each junction separately.'''
-
-    if 'all_sample_sums' not in results:
-        results['all_sample_sums'] = {}
-    if 'junctions' not in results:
-        results['junctions'] = {}
-    if out_fh is not None:
-        out_fh.write(record+"\n")
-    fields = record.split('\t')
-    if 'snaptron_id' == fields[clsnapconf.INTRON_ID_COL]:
-        results['header_fields']=fields[:clsnapconf.SAMPLE_IDS_COL]
-        return
-    samples = fields[clsnapconf.SAMPLE_IDS_COL][1:].split(',')
-    results['junctions'][fields[clsnapconf.INTRON_ID_COL]] = fields
-    sample_covs = [x.split(":")[1] for x in samples]
-    samples = [x.split(":")[0] for x in samples]
-    #need to track counts for the denominator
-    for i,sid in enumerate(samples):
-        if sid not in results['all_sample_sums']:
-            results['all_sample_sums'][sid]=0
-        results['all_sample_sums'][sid]+=int(sample_covs[i])
 
 

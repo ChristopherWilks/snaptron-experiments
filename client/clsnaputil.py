@@ -33,18 +33,20 @@ PSI_FUNC='psi'
 #retained intron
 RI='ri'
 
+base_query_fields = set(['donor','acceptor'])
 fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
-def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_group=False, header=True):
+def parse_query_argument(args, record, fieldnames, groups, groups_seen, datasources, endpoints, inline_group=False, header=True):
     '''Called from parse_command_line_args;
     builds the Snaptron query string from one
     or more of the separate query arguments passed in fieldnames:
     region (range), filters (rfilter), metadata (sfilter),
     and samples (sids)'''
 
-    endpoint = args.endpoint
     query=[None]
     fields_seen = set()
     group = None
+    intron_query = False
+    region = None
     for field in fieldnames:
         if len(record[field]) > 0:
             fields_seen.add(field)
@@ -69,6 +71,10 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
                 #switch the argument to use the fields approach, since all sample
                 #constraints are ignored/will error for base level queries
                 query.append("%s=%s" % ('fields',record[field]))
+            elif field in base_query_fields or (field == 'event-type' and record[field] == clsnapconf.RETAINED_INTRON):
+                endpoints.append(clsnapconf.BASES_ENDPOINT)
+                datasources.append(args.datasrc)
+                intron_query = True
             else:
                 mapped_field = field
                 if field in fmap:
@@ -76,7 +82,7 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
                 query.append("%s=%s" % (mapped_field,record[field]))
     #we're only making a query against the metadata
     if len(fields_seen) == 1 and "metadata" in fields_seen:
-        endpoint = clsnapconf.SAMPLE_ENDPOINT
+        endpoints[0] = clsnapconf.SAMPLE_ENDPOINT
     if not header:
         query.append("header=0")
     #either we got a group or we have to shift the list over by one
@@ -84,20 +90,30 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
         query[0] = "group=%s" % (group)
     else:
         query = query[1:]
-    return (query,endpoint)
+    queries_ = []
+    queries_.append(query)
+    if intron_query:
+        mapped_field = fmap['region']
+        queries_.append(["%s=%s" % (mapped_field,record['region']),"either=%s" % (str(args.either))])
+    queries = []
+    for q in queries_:
+        queries.append("&".join(q))
+    return queries
 
 
-def parse_command_line_args(args):
+def parse_command_line_args(args, ):
     '''Loop through arguments passed in on the command line and parse them'''
 
+    endpoints = [args.endpoint]
+    datasources = [args.datasrc]
     fieldnames = []
-    endpoint = args.endpoint
     for field in clsnapconf.FIELD_ARGS.keys():
         if field in vars(args) and vars(args)[field] is not None:
             fieldnames.append(field)
     groups = []
-    (query,endpoint) = parse_query_argument(args, vars(args), fieldnames, groups, {}, header=args.function is not None or not args.noheader)
-    return (["&".join(query)], groups, endpoint)
+    subqueries = parse_query_argument(args, vars(args), fieldnames, groups, {}, datasources, endpoints, header=args.function is not None or not args.noheader)
+    return ([subqueries], groups, datasources, endpoints)
+
 
 def breakup_junction_id_query(jids):
     ln = len(jids)

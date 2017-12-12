@@ -63,8 +63,8 @@ class SnaptronIterator():
         self.query_idx += 1
         if self.query_idx < len(self.query_param_strings):
             self.__init_for_query__()
-            construct_query_string()
-            execute_query_string()
+            self.construct_query_string()
+            self.execute_query_string()
             return self.__next__()
         raise StopIteration
 
