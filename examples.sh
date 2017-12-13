@@ -20,5 +20,5 @@ python client/query_snaptron.py --region "chr2:29446395-30142858" --contains 1 -
 diff tests/test_gene_coverages.tsv g2a
 
 #donor/acceptor demonstration for doing splices mates score (mouse gene AGRN)
-python client/query_snaptron.py --datasrc supermouse --region "chr4:156177442-156177442" --acceptor - --min-count 1 | cut -f 1,2,3,4,5-12,187
-python client/query_snaptron.py --datasrc supermouse --bulk-query-file ./tests/agrn_acceptor.tsv --min-count 1 --bulk-iterator |  cut -f 1,2,3,4,5-12,187
+python client/query_snaptron.py --datasrc supermouse --region "chr4:156177442-156177442" --acceptor - --min-count 1 | cut -f 1,2,3,4,5-12,232
+python client/query_snaptron.py --datasrc supermouse --bulk-query-file ./tests/agrn_acceptor.tsv --min-count 1 --bulk-iterator |  cut -f 1,2,3,4,5-12,232

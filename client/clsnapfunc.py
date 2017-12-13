@@ -377,12 +377,13 @@ def report_splice_mates(args, results, group_list, sample_records):
         sample_ids = results['base_sample_ids']
         base_vals = results['base_vals'][group]
         for i, base_val in enumerate(base_vals):
-            if base_val == 0:
-                continue
+            #if base_val == 0:
+            #    continue
             if sample_ids[i] not in totals:
                 totals[sample_ids[i]] = 0
             totals[sample_ids[i]] += base_val
-        
+       
+        #make sure our samples are aligned across all groups
         samples = sorted(totals.keys(), key=int)
         if print_header:
             sample_header = subdelim.join(samples)
