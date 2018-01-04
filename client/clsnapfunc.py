@@ -163,7 +163,7 @@ def tissue_specificity(args, results, group_list, sample_records):
             if sample_id in results['shared'][group]:
                 ts_val = sample_stats[sample_id][group]
             sfields = sample_records[sample_id].split("\t")
-            tissue = sfields[GTEX_TISSUE_COL]
+            tissue = sfields[clsnapconf.GTEX_TISSUE_COL]
             sys.stdout.write("%s\t%s\t%d\t%s\n" % (group, sample_id, ts_val, tissue))
     return output
 
@@ -269,10 +269,11 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
 
 
 def report_shared_sample_counts(args, results, group_list, sample_records):
-    '''Outputs 1) shared sample counts per junction group
-    2) annotation status and sources per junction group
-    3) total # of groups with shared samples across member junctions
-    4) total # of groups whose member junctions are annotated'''
+    '''Outputs  1) shared sample counts per junction group
+                2) annotation status and sources per junction group
+                3) total # of groups with shared samples across member junctions
+                4) total # of groups whose member junctions are annotated
+    '''
 
     output = []
     outputstr = "group\tshared_sample_counts\n"
