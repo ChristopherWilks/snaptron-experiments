@@ -25,6 +25,8 @@ import gzip
 import math
 import urllib2
 import re
+import time
+from functools import wraps
 
 import clsnapconf
 
@@ -32,6 +34,49 @@ PSI_FUNC='psi'
 #splice event types
 #retained intron
 RI='ri'
+
+def retry(ExceptionsToCheck, tries=4, delay=3, backoff=2, logger=None):
+    """Retry calling the decorated function using an exponential backoff.
+
+    http://www.saltycrane.com/blog/2009/11/trying-out-retry-decorator-python/
+    original from: http://wiki.python.org/moin/PythonDecoratorLibrary#Retry
+
+    :param ExceptionsToCheck: the exception to check. may be a tuple of
+        exceptions to check
+    :type ExceptionToCheck: Exception or tuple
+    :param tries: number of times to try (not retry) before giving up
+    :type tries: int
+    :param delay: initial delay between retries in seconds
+    :type delay: int
+    :param backoff: backoff multiplier e.g. value of 2 will double the delay
+        each retry
+    :type backoff: int
+    :param logger: logger to use. If None, print
+    :type logger: logging.Logger instance
+    """
+    def deco_retry(f):
+
+        @wraps(f)
+        def f_retry(*args, **kwargs):
+            mtries, mdelay = tries, delay
+            while mtries > 1:
+                try:
+                    return f(*args, **kwargs)
+                except ExceptionsToCheck as e:
+                    msg = "%s, Retrying in %d seconds..." % (str(e), mdelay)
+                    if logger:
+                        logger.warning(msg)
+                    else:
+                        sys.stderr.write(msg+"\n")
+                    time.sleep(mdelay)
+                    mtries -= 1
+                    mdelay *= backoff
+            return f(*args, **kwargs)
+
+        return f_retry  # true decorator
+
+    return deco_retry
+
 
 fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
 def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_group=False, header=True):
@@ -122,6 +167,10 @@ def samples_changed(args,cache_file):
         return True
     return False
 
+@retry((urllib2.HTTPError,urllib2.URLError), tries=17, delay=2, backoff=2)
+def urlopen(query_string):
+    return urllib2.urlopen(query_string)
+
 def download_sample_metadata(args, split=False):
     '''Dump from Snaptron WSI the full sample metadata for a specific data compilation (source)
     to a local file if not already cached'''
@@ -146,7 +195,7 @@ def download_sample_metadata(args, split=False):
             return (sample_records, sample_records_split)
         else:
             gfout = gzip.open(cache_file+".tmp","w")
-    response = urllib2.urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
+    response = urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
     all_records = response.read()
     all_records = all_records.split('\n')
     for (i,line) in enumerate(all_records):

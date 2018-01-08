@@ -23,6 +23,7 @@ import urllib2
 import httplib
 from SnaptronIterator import SnaptronIterator
 import clsnapconf
+import clsnaputil
 
 
 class SnaptronIteratorHTTP(SnaptronIterator):
@@ -39,10 +40,14 @@ class SnaptronIteratorHTTP(SnaptronIterator):
     def construct_query_string(self):
         self.query_string = "%s/%s/%s?%s" % (self.SERVICE_URL,self.instance,self.endpoint,self.query_param_string)
         return self.query_string
+    
+    @clsnaputil.retry((urllib2.HTTPError,urllib2.URLError), tries=17, delay=2, backoff=2)
+    def urlopen(self):
+       return urllib2.urlopen(self.query_string)
 
     def execute_query_string(self):
         sys.stderr.write("%s\n" % (self.query_string))
-        self.response = urllib2.urlopen(self.query_string)
+        self.response = self.urlopen()
         return self.response
 
     def fill_buffer(self):
