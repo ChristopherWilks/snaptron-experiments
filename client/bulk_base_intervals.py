@@ -22,14 +22,132 @@ import sys
 import os
 import argparse
 import query_snaptron
+import clsnapconf
+from SnaptronIteratorBulk import SnaptronIteratorBulk
 
 class IntervalProcessor():
+    def reset(self):
+        self.group = None
+        self.group_records = []
+        self.group_chrm = None
+        self.group_start = -1
+        self.group_end = -1
+
     def __init__(self):
+        self.delim = '\t'
+        self.col_offset = 4
+        self.reset()
+        self.first = True
+
+    #vitual base functions to be implemented by child classes
+    def write_header(self):
         pass
+
+    def write_records(self):
+        pass
+
+    def process(self,record):
+        if self.first:
+            self.write_header(record)
+            self.first = False
+            return
+        #assume records are continguously ordered by group and then by chrm/start
+        fields = record.split(self.delim)
+        #empty lines
+        if len(fields) <= 1:
+            return
+        (group, chrm, start, end) = fields[:self.col_offset]
+        if group != self.group:
+            if self.group is not None:
+                self.write_records()
+            self.reset()
+            self.group = group
+            self.group_chrm = chrm
+            self.group_start = start
+        self.group_end = end
+        self.group_records.append(fields)
+    
+    def finish(self):
+        if self.group is not None:
+            self.write_records()
+            self.group = None
+        
+
+class GeneExonIntervalProcessor(IntervalProcessor):
+
+    def __init__(self,gene_output_file,exon_output_file):
+        self.gout = gene_output_file
+        self.eout = exon_output_file
+        self.prev_gene_name = None
+        self.gene_start = -1
+        self.gene_end = -1
+        self.gene_sums = []
+
+        IntervalProcessor.__init__(self)
+
+    def summarize_by_exon(self):
+        sums = [0] * len(self.group_records[0][self.col_offset:])
+        for counts in self.group_records:
+            sums = [sums[i]+int(count) for (i,count) in enumerate(counts[self.col_offset:])]
+        return sums
+    
+    def summarize_by_gene(self):
+        exon_sums = []
+        sums = []
+        for counts in self.group_records:
+            #(group, chrm, start, end) = counts[:4]
+            #exon = ":".join(counts[:self.col_offset])
+            exon = counts[0]
+            if exon != prev_exon:
+                if prev_exon is not None:
+                    exons_sums.append(sums)
+                prev_exon = exon
+                sums = [0] * len(self.group_records[0][self.col_offset:])
+            sums = [sums[i]+int(count) for (i,count) in enumerate(counts[self.col_offset:])]
+        if prev_exon is not None:
+            exons_sums.append(sums)
+        return exons_sums
+
+    def write_header(self,line):
+        self.gout.write(line+"\n")
+        self.eout.write(line+"\n")
+
+    def write_records(self):
+        #assume each basic group is an exon (gene_name:chrm:exon_start:exon_end)
+        exon_sums = self.summarize_by_exon()
+        gene_name = self.group.split(':')[0]
+        if gene_name != self.prev_gene_name:
+            if self.prev_gene_name is not None:
+                self.gene_sums = [str(x) for x in self.gene_sums]
+                self.gout.write("%s\t%s\t%s\t%s\t%s\n" % (self.prev_gene_name,self.group_chrm,self.gene_start,self.gene_end,self.delim.join(self.gene_sums)))
+            self.gene_start = self.group_start
+            self.prev_gene_name = gene_name
+            self.gene_sums = [0] * len(exon_sums)
+
+        self.gene_sums = [self.gene_sums[i]+count for (i,count) in enumerate(exon_sums)]
+        self.gene_end = self.group_end
+
+        exon_sums = [str(x) for x in exon_sums]
+        self.eout.write("%s\t%s\t%s\t%s\t%s\n" % (self.group,self.group_chrm,self.group_start,self.group_end,self.delim.join(exon_sums)))
 
 
 def main(args):
-    query_snaptron.process_bulk_queries(args)
+    #query_snaptron.process_bulk_queries(args)
+    (query_params_per_group, groups, endpoint) = query_snaptron.parse_query_params(args)
+    gout = None
+    eout = None
+    if args.bulk_query_gzip:
+        gout = gzip.open(args.bulk_query_file + ".snapout.genes.tsv.gz", "wb")
+        eout = gzip.open(args.bulk_query_file + ".snapout.exons.tsv.gz", "wb")
+    else:
+        gout = open(args.bulk_query_file + ".snapout.genes.tsv", "wb")
+        eout = open(args.bulk_query_file + ".snapout.exons.tsv", "wb")
+    processor = GeneExonIntervalProcessor(gout,eout)
+    for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
+        sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, None, processor=processor)
+    process.finish()
+    gout.close()
+    eout.close()
 
 if __name__ == '__main__':
     #we can always add to these

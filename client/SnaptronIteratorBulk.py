@@ -56,7 +56,9 @@ class SnaptronIteratorBulk(SnaptronIterator):
         buf_ = self.response.read(self.buffer_size)
         while(buf_ != None and buf_ != ''):
             if self.processor:
-                this.processor.process(buf_)
+                #this.processor.process(buf_)
+                buf_ += self.response.readline()
+                [self.processor.process(line) for line in buf_.split('\n')]
             else:
                 self.outfile_handle.write(buf_)
             buf_ = self.response.read(self.buffer_size)
