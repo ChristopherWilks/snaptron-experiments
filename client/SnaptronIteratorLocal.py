@@ -24,8 +24,6 @@ from SnaptronIterator import SnaptronIterator
 import clsnapconf
 
 SCRIPT_PATH='../'
-#SCRIPT_PATH=''
-ENDPOINTS={'snaptron':'snaptron.py','sample':'snample.py','annotation':'snannotation.py','density':'sdensity.py','breakpoint':'sbreakpoint.py'}
 
 class SnaptronIteratorLocal(SnaptronIterator):
 
@@ -36,7 +34,7 @@ class SnaptronIteratorLocal(SnaptronIterator):
         self.execute_query_string(self.cmd)
     
     def construct_query_string(self,query_param_string,endpoint):
-        self.cmd = ['python','%s%s' % (SCRIPT_PATH,ENDPOINTS[endpoint]), query_param_string]
+        self.cmd = ['python','%s%s' % (SCRIPT_PATH,clsnapconf.LOCAL_ENDPOINTS[endpoint]), query_param_string]
         return self.cmd
 
     def execute_query_string(self,query_string):
