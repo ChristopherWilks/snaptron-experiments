@@ -86,28 +86,11 @@ class GeneExonIntervalProcessor(IntervalProcessor):
         IntervalProcessor.__init__(self)
 
     def summarize_by_exon(self):
-        sums = [0] * len(self.group_records[0][self.col_offset:])
+        sums = [0.0] * len(self.group_records[0][self.col_offset:])
         for counts in self.group_records:
-            sums = [sums[i]+int(count) for (i,count) in enumerate(counts[self.col_offset:])]
+            sums = [sums[i]+float(count) for (i,count) in enumerate(counts[self.col_offset:])]
         return sums
     
-    def summarize_by_gene(self):
-        exon_sums = []
-        sums = []
-        for counts in self.group_records:
-            #(group, chrm, start, end) = counts[:4]
-            #exon = ":".join(counts[:self.col_offset])
-            exon = counts[0]
-            if exon != prev_exon:
-                if prev_exon is not None:
-                    exons_sums.append(sums)
-                prev_exon = exon
-                sums = [0] * len(self.group_records[0][self.col_offset:])
-            sums = [sums[i]+int(count) for (i,count) in enumerate(counts[self.col_offset:])]
-        if prev_exon is not None:
-            exons_sums.append(sums)
-        return exons_sums
-
     def write_header(self,line):
         self.gout.write(line+"\n")
         self.eout.write(line+"\n")
@@ -129,10 +112,18 @@ class GeneExonIntervalProcessor(IntervalProcessor):
 
         exon_sums = [str(x) for x in exon_sums]
         self.eout.write("%s\t%s\t%s\t%s\t%s\n" % (self.group,self.group_chrm,self.group_start,self.group_end,self.delim.join(exon_sums)))
+    
+    def finish(self):
+        if self.prev_gene_name is not None:
+            self.gene_sums = [str(x) for x in self.gene_sums]
+            self.gout.write("%s\t%s\t%s\t%s\t%s\n" % (self.prev_gene_name,self.group_chrm,self.gene_start,self.gene_end,self.delim.join(self.gene_sums)))
+            self.prev_gene_name = None
+        if self.group is not None:
+            self.write_records()
+            self.group = None
 
 
 def main(args):
-    #query_snaptron.process_bulk_queries(args)
     (query_params_per_group, groups, endpoint) = query_snaptron.parse_query_params(args)
     gout = None
     eout = None
@@ -145,7 +136,7 @@ def main(args):
     processor = GeneExonIntervalProcessor(gout,eout)
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
         sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, None, processor=processor)
-    process.finish()
+    processor.finish()
     gout.close()
     eout.close()
 
