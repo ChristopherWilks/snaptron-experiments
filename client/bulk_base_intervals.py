@@ -26,29 +26,29 @@ import clsnapconf
 from SnaptronIteratorBulk import SnaptronIteratorBulk
 
 class IntervalProcessor():
-    def reset(self):
-        self.group = None
+    def _reset(self,group=None,chrm=None,start=-1,end=-1):
+        self.group = group
         self.group_records = []
-        self.group_chrm = None
-        self.group_start = -1
-        self.group_end = -1
+        self.group_chrm = chrm
+        self.group_start = start
+        self.group_end = end
 
     def __init__(self):
         self.delim = '\t'
         self.col_offset = 4
-        self.reset()
+        self._reset()
         self.first = True
 
     #vitual base functions to be implemented by child classes
-    def write_header(self):
+    def _write_header(self):
         pass
 
-    def write_records(self):
+    def _write_records(self,new_group):
         pass
 
     def process(self,record):
         if self.first:
-            self.write_header(record)
+            self._write_header(record)
             self.first = False
             return
         #assume records are continguously ordered by group and then by chrm/start
@@ -59,70 +59,76 @@ class IntervalProcessor():
         (group, chrm, start, end) = fields[:self.col_offset]
         if group != self.group:
             if self.group is not None:
-                self.write_records()
-            self.reset()
-            self.group = group
-            self.group_chrm = chrm
-            self.group_start = start
+                self._write_records(group)
+            self._reset(group,chrm,start,end)
         self.group_end = end
         self.group_records.append(fields)
     
     def finish(self):
         if self.group is not None:
-            self.write_records()
+            self._write_records(None)
             self.group = None
         
 
 class GeneExonIntervalProcessor(IntervalProcessor):
 
+    def _reset(self,group=None,chrm=None,start=-1,end=-1):
+        IntervalProcessor._reset(self,group,chrm,start,end)
+        self.prev_gene_name = self._gene_name_from_group(group)
+        if self.gene_start == -1:
+            self.gene_start = start
+        self.gene_end = end
+
     def __init__(self,gene_output_file,exon_output_file):
         self.gout = gene_output_file
         self.eout = exon_output_file
-        self.prev_gene_name = None
         self.gene_start = -1
-        self.gene_end = -1
         self.gene_sums = []
 
         IntervalProcessor.__init__(self)
 
-    def summarize_by_exon(self):
+    def _gene_name_from_group(self,group):
+        if group is None:
+            return None
+        return group.split(':')[0]
+
+    def _summarize_by_exon(self):
         sums = [0.0] * len(self.group_records[0][self.col_offset:])
         for counts in self.group_records:
             sums = [sums[i]+float(count) for (i,count) in enumerate(counts[self.col_offset:])]
         return sums
     
-    def write_header(self,line):
+    def _write_header(self,line):
         self.gout.write(line+"\n")
         self.eout.write(line+"\n")
 
-    def write_records(self):
+    def _write_records(self,new_group):
         #assume each basic group is an exon (gene_name:chrm:exon_start:exon_end)
-        exon_sums = self.summarize_by_exon()
-        gene_name = self.group.split(':')[0]
-        if gene_name != self.prev_gene_name:
-            if self.prev_gene_name is not None:
-                self.gene_sums = [str(x) for x in self.gene_sums]
-                self.gout.write("%s\t%s\t%s\t%s\t%s\n" % (self.prev_gene_name,self.group_chrm,self.gene_start,self.gene_end,self.delim.join(self.gene_sums)))
-            self.gene_start = self.group_start
-            self.prev_gene_name = gene_name
+        #handle previous exon (doesn't include current exon's counts)
+        exon_sums = self._summarize_by_exon()
+        
+        gene_name = self._gene_name_from_group(new_group)
+        #first time through the gene sums might not have been initialized
+        if len(self.gene_sums) == 0:
             self.gene_sums = [0] * len(exon_sums)
-
-        self.gene_sums = [self.gene_sums[i]+count for (i,count) in enumerate(exon_sums)]
-        self.gene_end = self.group_end
-
+        #now check to see if we've switched genes with the current exon
+        #either the first gene or we've switched genes
+        if gene_name != self.prev_gene_name:
+            #once more to catch the last exon
+            gene_sums = [str(self.gene_sums[i]+count) for (i,count) in enumerate(exon_sums)]
+            #self.gene_sums = [str(x) for x in self.gene_sums]
+            self.gout.write("%s\t%s\t%s\t%s\t%s\n" % (self.prev_gene_name,self.group_chrm,self.gene_start,self.gene_end,self.delim.join(gene_sums)))
+            self.gene_start = -1
+            self.gene_sums = []
+        else:
+            #update gene sums upto and including previous exon's counts
+            self.gene_sums = [self.gene_sums[i]+count for (i,count) in enumerate(exon_sums)]
+        
+        #now print exon
         exon_sums = [str(x) for x in exon_sums]
         self.eout.write("%s\t%s\t%s\t%s\t%s\n" % (self.group,self.group_chrm,self.group_start,self.group_end,self.delim.join(exon_sums)))
+        
     
-    def finish(self):
-        if self.prev_gene_name is not None:
-            self.gene_sums = [str(x) for x in self.gene_sums]
-            self.gout.write("%s\t%s\t%s\t%s\t%s\n" % (self.prev_gene_name,self.group_chrm,self.gene_start,self.gene_end,self.delim.join(self.gene_sums)))
-            self.prev_gene_name = None
-        if self.group is not None:
-            self.write_records()
-            self.group = None
-
-
 def main(args):
     (query_params_per_group, groups, endpoint) = query_snaptron.parse_query_params(args)
     gout = None
