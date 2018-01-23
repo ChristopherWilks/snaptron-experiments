@@ -141,6 +141,8 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
                     continue
             if args.normalize:
                 record = clsnaputil.normalize_coverage(args, record, norm_divisor_col, norm_scaling_factor)
+                if record is None:
+                    continue
             if count_function is not None:
                 count_function(args, results, record, group, out_fh=group_fh)
             elif args.function == snf.INTERSECTION_FUNC:

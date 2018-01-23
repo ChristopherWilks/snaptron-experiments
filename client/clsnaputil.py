@@ -241,9 +241,10 @@ def round_like_R(num, ndigits=0):
 #wiggletools print non_unique_base_coverage.bw.auc AUC non_unique_base_coverage.bw
 def normalize_coverage(args, record, divisor_col, scaling_factor):
     fields = record.rstrip().split('\t')
-    if fields[1] == 'snaptron_id':
+    if fields[clsnapconf.INTRON_ID_COL] == 'snaptron_id':
         return record
-    #do he full normalization + scaling here
+    #do the full normalization + scaling here
+    #the internal splits on ':' are all for sample_id:coverage pairs
     fields[clsnapconf.SAMPLE_IDS_COL] = ",".join( \
         [y for y in \
          [x.split(':')[0]+":"+str(int(round_like_R( \
@@ -251,6 +252,9 @@ def normalize_coverage(args, record, divisor_col, scaling_factor):
           for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',') \
           if x != '' and x.split(':')[0] in args.sample_records_split] \
          if y.split(':')[1] != "0"])
+    #if the normalization resulted in in all samples having 0 coverage, we skip this record
+    if fields[clsnapconf.SAMPLE_IDS_COL] == '':
+        return None
     #need to recalculate summary stats with normalized (and possibly reduced) sample coverages
     normalized_counts = [int(x.split(':')[1]) for x in fields[clsnapconf.SAMPLE_IDS_COL].split(',')]
     fields[clsnapconf.SAMPLE_COUNT_COL] = len(normalized_counts)
