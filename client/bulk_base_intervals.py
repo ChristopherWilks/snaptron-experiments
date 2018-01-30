@@ -57,6 +57,8 @@ class IntervalProcessor():
         if len(fields) <= 1:
             return
         (group, chrm, start, end) = fields[:self.col_offset]
+        #offset because low coord always is 0-base
+        start = str(int(start) + 1)
         if group != self.group:
             if self.group is not None:
                 self._write_records(group)
@@ -67,6 +69,7 @@ class IntervalProcessor():
     def finish(self):
         if self.group is not None:
             self._write_records(None)
+            #in case finish() is called again
             self.group = None
         
 
@@ -80,10 +83,12 @@ class GeneExonIntervalProcessor(IntervalProcessor):
         self.gene_end = end
 
     def __init__(self,gene_output_file,exon_output_file):
+        self.prev_gene_name = None
         self.gout = gene_output_file
         self.eout = exon_output_file
         self.gene_start = -1
         self.gene_sums = []
+        self.gene_bp_length = 0
 
         IntervalProcessor.__init__(self)
 
@@ -99,34 +104,35 @@ class GeneExonIntervalProcessor(IntervalProcessor):
         return sums
     
     def _write_header(self,line):
-        self.gout.write(line+"\n")
-        self.eout.write(line+"\n")
+        fields = line.split("\t")
+        self.gout.write(fields[0]+"\tbp_length\t"+"\t".join(fields[1:])+"\n") 
+        self.eout.write(fields[0]+"\tbp_length\t"+"\t".join(fields[1:])+"\n") 
 
     def _write_records(self,new_group):
+        '''Write out previously tracked gene/exon (group)'''
+
         #assume each basic group is an exon (gene_name:chrm:exon_start:exon_end)
         #handle previous exon (doesn't include current exon's counts)
         exon_sums = self._summarize_by_exon()
-        
-        gene_name = self._gene_name_from_group(new_group)
+        exon_bp_length = (int(self.group_end) - int(self.group_start)) + 1
+        #now print the previous exon if we're still reading lines
+        self.eout.write("%s\t%d\t%s\t%s\t%s\t%s\n" % (self.group,exon_bp_length,self.group_chrm,self.group_start,self.group_end,self.delim.join([str(x) for x in exon_sums])))
+
+        #keep track of size and end of each subsequent exon as it may be the gene end as well
+        self.gene_end = self.group_end
+        self.gene_bp_length += exon_bp_length
         #first time through the gene sums might not have been initialized
         if len(self.gene_sums) == 0:
-            self.gene_sums = [0] * len(exon_sums)
+            self.gene_sums = [0.0] * len(exon_sums)
+        self.gene_sums = [self.gene_sums[i]+count for (i,count) in enumerate(exon_sums)]
         #now check to see if we've switched genes with the current exon
         #either the first gene or we've switched genes
-        if gene_name != self.prev_gene_name:
-            #once more to catch the last exon
-            gene_sums = [str(self.gene_sums[i]+count) for (i,count) in enumerate(exon_sums)]
-            #self.gene_sums = [str(x) for x in self.gene_sums]
-            self.gout.write("%s\t%s\t%s\t%s\t%s\n" % (self.prev_gene_name,self.group_chrm,self.gene_start,self.gene_end,self.delim.join(gene_sums)))
+        gene_name = self._gene_name_from_group(new_group)
+        if gene_name != self.prev_gene_name and self.prev_gene_name is not None:
+            self.gout.write("%s\t%d\t%s\t%s\t%s\t%s\n" % (self.prev_gene_name,self.gene_bp_length,self.group_chrm,self.gene_start,self.gene_end,self.delim.join([str(x) for x in self.gene_sums])))
             self.gene_start = -1
             self.gene_sums = []
-        else:
-            #update gene sums upto and including previous exon's counts
-            self.gene_sums = [self.gene_sums[i]+count for (i,count) in enumerate(exon_sums)]
-        
-        #now print exon
-        exon_sums = [str(x) for x in exon_sums]
-        self.eout.write("%s\t%s\t%s\t%s\t%s\n" % (self.group,self.group_chrm,self.group_start,self.group_end,self.delim.join(exon_sums)))
+            self.gene_bp_length = 0
         
     
 def main(args):

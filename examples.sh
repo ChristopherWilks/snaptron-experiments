@@ -21,3 +21,8 @@ diff tests/test_gene_coverages.tsv g2a
 
 #donor/acceptor demonstration for doing splices mates score (mouse gene AGRN)
 python client/query_snaptron.py --datasrc supermouse --region "chr4:156177442-156177442" --acceptor - --min-count 1 | cut -f 1,2,3,4,5-12,186 
+
+#test bulk exon/gene coverage derivation script
+python client/bulk_base_intervals.py --bulk-query-file tests/gtex.test.gene.exon.coverage.tsv --endpoint bases --datasrc gtex 
+diff tests/gtex.test.genes.coverage.expected tests/gtex.test.gene.exon.coverage.tsv.snapout.genes.tsv
+diff tests/gtex.test.exons.coverage.expected tests/gtex.test.gene.exon.coverage.tsv.snapout.exons.tsv
