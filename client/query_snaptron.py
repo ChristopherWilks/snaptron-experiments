@@ -34,6 +34,8 @@ from SnaptronIteratorHTTP import SnaptronIteratorHTTP
 from SnaptronIteratorLocal import SnaptronIteratorLocal
 from SnaptronIteratorBulk import SnaptronIteratorBulk
 
+csv.field_size_limit(sys.maxsize)
+
 compute_functions={snf.MATES_FUNC:(snf.sum_sample_coverage,snf.report_splice_mates),clsnaputil.PSI_FUNC:(snf.count_samples_per_group,snf.percent_spliced_in),snf.JIR_FUNC:(snf.count_samples_per_group,snf.junction_inclusion_ratio),snf.TRACK_EXONS_FUNC:(snf.track_exons,snf.filter_exons),snf.TISSUE_SPECIFICITY_FUNC:(snf.count_samples_per_group,snf.tissue_specificity),snf.SHARED_SAMPLE_COUNT_FUNC:(snf.count_samples_per_group,snf.report_shared_sample_counts),snf.INTERSECTION_FUNC:(None,None),None:(None,None)}
 
 
