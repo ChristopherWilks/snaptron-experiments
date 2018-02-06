@@ -16,8 +16,7 @@ python client/query_snaptron.py --func intersection --query-file data/test_inter
 
 python client/query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --filters "samples_count>=100&annotated=1" --normalize jxcov | wc -l
 
-python client/query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --filters "samples_count>=100&annotated=1" --endpoint genes --normalize recount --datasrc supermouse | grep "ENSMUSG00000039844.19"| cut -f 13 | perl -ne 'chomp; @f=split(/,/,$_); shift(@f); print "".join("\t",(map { ($a,$b)=split(/:/); $b;} @f))."\n";' > g2a
-diff tests/test_gene_coverages.tsv g2a
+tests/gtex_recount_normalization_check.91.sh
 
 #donor/acceptor demonstration for doing splices mates score (mouse gene AGRN)
-python client/query_snaptron.py --datasrc supermouse --region "chr4:156177442-156177442" --acceptor - --min-count 1 | cut -f 1,2,3,4,5-12,186 
+python client/query_snaptron.py --datasrc supermouse --region "chr4:156177442-156177442" --acceptor - --min-count 1 | cut -f 1,2,3,4,5-12,206
