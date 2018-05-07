@@ -21,6 +21,8 @@
 import sys
 import os
 import argparse
+import gzip
+
 import query_snaptron
 import clsnapconf
 from SnaptronIteratorBulk import SnaptronIteratorBulk
@@ -136,25 +138,41 @@ class GeneExonIntervalProcessor(IntervalProcessor):
         
     
 def main(args):
+
     (query_params_per_group, groups, endpoint) = query_snaptron.parse_query_params(args)
-    gout = None
-    eout = None
-    if args.bulk_query_gzip:
-        gout = gzip.open(args.bulk_query_file + ".snapout.genes.tsv.gz", "wb")
-        eout = gzip.open(args.bulk_query_file + ".snapout.exons.tsv.gz", "wb")
-    else:
-        gout = open(args.bulk_query_file + ".snapout.genes.tsv", "wb")
-        eout = open(args.bulk_query_file + ".snapout.exons.tsv", "wb")
-    processor = GeneExonIntervalProcessor(gout,eout)
+
+    processor = None
+    outfile = None
+
+    if args.summary == 'gene_exon':
+        gout = None
+        eout = None
+        if args.bulk_query_gzip:
+            gout = gzip.open(args.bulk_query_file + ".snapout.genes.tsv.gz", "wb")
+            eout = gzip.open(args.bulk_query_file + ".snapout.exons.tsv.gz", "wb")
+        else:
+            gout = open(args.bulk_query_file + ".snapout.genes.tsv", "wb")
+            eout = open(args.bulk_query_file + ".snapout.exons.tsv", "wb")
+        processor = GeneExonIntervalProcessor(gout,eout)
+    elif args.summary == 'single_base':
+        if args.bulk_query_gzip:
+            outfile = gzip.open(args.bulk_query_file + ".per_base.tsv.gz", "wb")
+        else:
+            outfile = open(args.bulk_query_file + ".per_base.tsv", "wb")
+
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
-        sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, None, processor=processor)
-    processor.finish()
+        sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile, processor=processor)
+
+    if processor is not None:
+        processor.finish()
     gout.close()
     eout.close()
+
 
 if __name__ == '__main__':
     #we can always add to these
     parser = query_snaptron.create_parser()
+    parser.add_argument('--summary', metavar='(single_base)|gene_exon', type=str, default='single_base', help='Which summary processor to use? default is single base (no summary)')
     args = parser.parse_args()
     if args.region is None and args.metadata is None and args.query_file is None and args.bulk_query_file is None:
         sys.stderr.write("Error: no region-related arguments passed in, exiting\n")
