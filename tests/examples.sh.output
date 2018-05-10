@@ -27,7 +27,7 @@ http://snaptron.cs.jhu.edu/tcga/snaptron?regions=chr17:72122973-72123542&contain
 http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr1:94468008-94472172&exact=1&rfilter=strand:+&rfilter=samples_count>:1
 http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr1:94472243-94475142&exact=1&rfilter=strand:+&rfilter=samples_count>:1&header=0
 http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr1:94468008-94475142&exact=1&rfilter=strand:+&rfilter=samples_count>:1
-1426
+1585
 http://snaptron.cs.jhu.edu/srav2/snaptron
 100
 http://snaptron.cs.jhu.edu/srav2/snaptron?regions=chr11:82970135-82997450&rfilter=samples_count<:10&sfilter=description:cortex
