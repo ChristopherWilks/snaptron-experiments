@@ -346,11 +346,7 @@ def report_splice_mates(args, results, group_list, sample_records):
     chrom = m.group(1)
     start = int(m.group(2))
     end = int(m.group(3))
-    coord = start - 1
-    if args.either == '1':
-        coord = end + 1
-    args.region = '%s:%s-%s' % (chrom,str(coord),str(coord))
-    args.either='2'
+    args.region = '%s:%s-%s' % (chrom,str(start),str(end))
     (query_param_strings, groups, endpoint) = clsnaputil.parse_command_line_args(args)
     use_local = False
     #assume one query
