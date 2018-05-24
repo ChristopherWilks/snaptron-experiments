@@ -65,6 +65,76 @@ def parse_query_params(args):
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
 
+def merge(record1, record2):
+    if record2 is None:
+        return None
+    (r1, r2) = (record1, record2)
+    (group1, sid1, c1, s1, e1, len1, st1) = r1[:clsnapconf.STRAND_COL+1]
+    (group2, sid2, c2, s2, e2, len2, st2) = r2[:clsnapconf.STRAND_COL+1]
+    if group2 == group1 and c2 == c1 and s2 == s1 and e2 == e1 and st2 == st1:
+        #merge the two records
+        r1[1]+=":"+r2[1]
+        r1[clsnapconf.SAMPLE_IDS_COL]+=r2[clsnapconf.SAMPLE_IDS_COL]
+        #zero out the summary stats for now
+        r1[clsnapconf.SAMPLE_IDS_COL+1:clsnapconf.SAMPLE_MED_COL+1]=["0","0","0.0","0.0"]
+        r1[clsnapconf.SAMPLE_MED_COL+1] += ',' + r2[clsnapconf.SAMPLE_MED_COL+1]
+        return r1
+    return None
+
+
+def process_combined_datasource_bulk_queries(queries, datasrcs, endpoint, outfile):
+    sIT1 = SnaptronIteratorBulk(queries, datasrcs[0], endpoint, None)
+    sIT2 = SnaptronIteratorBulk(queries, datasrcs[1], endpoint, None)
+    #need to loop through all records to merge ones which are matches between the datasources,
+    #otherwise just write out to the filehandle
+    prev_r1 = None
+    prev_r2 = None
+    r2_done = False
+    (group2, sid2, c2, s2, e2, len2, st2) = (None, None, None, None, None, None, None)
+    #assume for each iterator the records come in coordinate sorted order
+    for record1 in sIT1:
+        prev_record1 = record1
+        r1 = record1.split('\t')
+        (group1, sid1, c1, s1, e1, len1, st1) = r1[:clsnapconf.STRAND_COL+1]
+        #need to loop through more of 2
+        try:
+            while prev_r2 is None or s2 < s1:
+                if prev_r2 is not None:
+                    outfile.write('\t'.join(prev_r2)+"\n")
+                record2 = sIT2.next()
+                prev_r2 = record2.rstrip().split('\t')
+                (group2, sid2, c2, s2, e2, len2, st2) = prev_r2[:clsnapconf.STRAND_COL+1]
+        except StopIteration, si:
+            prev_r2 = None
+            r2_done = True
+        #exact match?
+        merged = merge(r1, prev_r2)
+        if merged is not None:
+            outfile.write('\t'.join(merged)+"\n")
+            prev_r2 = None
+            continue
+        #need to loop through more of 1
+        #if prev_r2 is None or group2 != group1 or c2 != c1 or s2 > s1:
+        outfile.write('\t'.join(r1)+"\n")
+        continue
+    #pick up the remaining ones of iterator2 (if there are any)
+    if not r2_done:
+        try:
+            if prev_r2 is None:
+                record2 = sIT2.next()
+                prev_r2 = record2.rstrip().split('\t')
+            while prev_r2 is not None:
+                outfile.write('\t'.join(prev_r2)+"\n")
+                record2 = sIT2.next()
+                prev_r2 = record2.rstrip().split('\t')
+        except StopIteration, si:
+            prev_r2 = None
+
+
+                
+
+
+
 def process_bulk_queries(args):
     (query_params_per_group, groups, endpoint) = parse_query_params(args)
     outfile = sys.stdout
@@ -74,8 +144,12 @@ def process_bulk_queries(args):
         else:
             outfile = open(args.bulk_query_file + ".snap_results.tsv", "wb")
     #TODO: make gzip optional for output file
+    datasrcs = args.datasrc.split(',')
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
-        sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
+        if len(datasrcs) > 1:
+            process_combined_datasource_bulk_queries(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasrcs, endpoint, outfile)
+        else:
+            sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
     outfile.close()
 
 def process_group(args, group_idx, groups, group_fhs, results):

@@ -54,6 +54,8 @@ class SnaptronIteratorBulk(SnaptronIterator):
     def execute_query_string(self):
         sys.stderr.write("%s\n" % (self.query_string))
         self.response = self.urlopen()
+        if self.outfile_handle is None:
+            return self.response
         #since we're doing bulk, just write out as fast as we can
         buf_ = self.response.read(self.buffer_size)
         while(buf_ != None and buf_ != ''):
