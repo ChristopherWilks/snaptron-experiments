@@ -98,7 +98,12 @@ def merge(record1, record2):
     return None
 
 
-def process_combined_datasource_bulk_queries(queries, datasrcs, endpoint, outfile):
+def process_combined_datasource_bulk_queries(queries, datasrcs, endpoint, outfile, groups):
+    #to maintain and ordering based on which group gets queried first
+    #assume that if there are duplicate group names, they cluster together
+    group_map = {g:i for (i,g) in enumerate(groups)}
+    #for header
+    group_map['Group']=-1
     sIT1 = SnaptronIteratorBulk(queries, datasrcs[0], endpoint, None)
     sIT2 = SnaptronIteratorBulk(queries, datasrcs[1], endpoint, None)
     #need to loop through all records to merge ones which are matches between the datasources,
@@ -118,8 +123,8 @@ def process_combined_datasource_bulk_queries(queries, datasrcs, endpoint, outfil
         #CAVEAT: if we have a record from stream 2 but its group or chromosome doesn't match, we shelve it
         #we always save stream 2 records which are not the same group/chromosome for later
         try:
-            while prev_r2 is None or (group2 == group1 and c2 == c1 and \
-                                      (s2 < s1 or (s2 == s1 and e2 < e1))):
+            while prev_r2 is None or group_map[group2] < group_map[group1] or c2 < c1 or \
+                                      (group2 == group1 and c2 == c1 and (s2 < s1 or (s2 == s1 and e2 < e1))):
                 if prev_r2 is not None:
                     outfile.write('\t'.join(prev_r2)+"\n")
                 record2 = sIT2.next()
@@ -163,7 +168,7 @@ def process_bulk_queries(args):
     datasrcs = args.datasrc.split(',')
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
         if len(datasrcs) > 1:
-            process_combined_datasource_bulk_queries(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasrcs, endpoint, outfile)
+            process_combined_datasource_bulk_queries(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasrcs, endpoint, outfile, groups)
         else:
             sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
     outfile.close()
