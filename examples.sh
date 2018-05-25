@@ -20,3 +20,4 @@ tests/gtex_recount_normalization_check.91.sh
 
 #donor/acceptor demonstration for doing splices mates score (mouse gene AGRN)
 python client/query_snaptron.py --datasrc supermouse --region "chr4:156177442-156177442" --acceptor - --min-count 1 | cut -f 1,2,3,4,5-12,190
+python client/query_snaptron.py --datasrc gtex,tcga --bulk-query-file data/alk_alt_tss.hg38.snap.tsv --bulk-query-stdout | cut -f1-10 | grep ":" | cut -f 1,3-5,7 | sort -u > both.all.shared.coords.test

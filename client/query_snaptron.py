@@ -153,6 +153,7 @@ def process_bulk_queries(args):
             sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
     outfile.close()
 
+
 def process_group(args, group_idx, groups, group_fhs, results):
     '''General method called by process_queries to handle each junction group's results for a single basic query'''
     group = None
