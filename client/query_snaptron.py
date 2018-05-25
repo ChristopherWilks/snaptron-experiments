@@ -65,6 +65,7 @@ def parse_query_params(args):
     #assume the endpoint will be the same for all lines in the file
     return (queries,groups,endpoint)
 
+
 def merge(record1, record2):
     if record2 is None:
         return None
@@ -74,10 +75,24 @@ def merge(record1, record2):
     if group2 == group1 and c2 == c1 and s2 == s1 and e2 == e1 and st2 == st1:
         #merge the two records
         r1[1]+=":"+r2[1]
-        r1[clsnapconf.SAMPLE_IDS_COL]+=r2[clsnapconf.SAMPLE_IDS_COL]
-        #TODO: fix summary stats
-        #zero out the summary stats for now
-        r1[clsnapconf.SAMPLE_IDS_COL+1:clsnapconf.SAMPLE_MED_COL+1]=["0","0","0.0","0.0"]
+        #header
+        if c1 == 'chromosome':
+            return r1
+        r1[clsnapconf.SAMPLE_IDS_COL] += r2[clsnapconf.SAMPLE_IDS_COL]
+        r1[clsnapconf.SAMPLE_COUNT_COL] = str(int(r1[clsnapconf.SAMPLE_COUNT_COL]) + int(r2[clsnapconf.SAMPLE_COUNT_COL]))
+        r1[clsnapconf.SAMPLE_SUM_COL] = str(int(r1[clsnapconf.SAMPLE_SUM_COL]) + int(r2[clsnapconf.SAMPLE_SUM_COL]))
+        r1[clsnapconf.SAMPLE_AVG_COL] = str(float(r1[clsnapconf.SAMPLE_SUM_COL])/float(r1[clsnapconf.SAMPLE_COUNT_COL]))
+        #recalculate median
+        idx1 = int(r1[clsnapconf.SAMPLE_COUNT_COL]) / 2.0
+        idx2 = idx1 + 1
+        #odd
+        if int(idx1) < idx1:
+            idx1 = int(idx1) + 1
+            idx2 = idx1
+        idx1-=1
+        idx2-=1
+        counts = [0 if i != idx1 and i != idx2 else x for (i,x) in enumerate(sorted([int(y.split(':')[1]) for y in r1[clsnapconf.SAMPLE_IDS_COL].split(',')[1:]]))]
+        r1[clsnapconf.SAMPLE_MED_COL] = str(float(counts[int(idx1)]+counts[int(idx2)])/2.0)
         r1[clsnapconf.SAMPLE_MED_COL+1] += ',' + r2[clsnapconf.SAMPLE_MED_COL+1]
         return r1
     return None
