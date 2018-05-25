@@ -75,6 +75,7 @@ def merge(record1, record2):
         #merge the two records
         r1[1]+=":"+r2[1]
         r1[clsnapconf.SAMPLE_IDS_COL]+=r2[clsnapconf.SAMPLE_IDS_COL]
+        #TODO: fix summary stats
         #zero out the summary stats for now
         r1[clsnapconf.SAMPLE_IDS_COL+1:clsnapconf.SAMPLE_MED_COL+1]=["0","0","0.0","0.0"]
         r1[clsnapconf.SAMPLE_MED_COL+1] += ',' + r2[clsnapconf.SAMPLE_MED_COL+1]
@@ -91,14 +92,19 @@ def process_combined_datasource_bulk_queries(queries, datasrcs, endpoint, outfil
     prev_r2 = None
     r2_done = False
     (group2, sid2, c2, s2, e2, len2, st2) = (None, None, None, None, None, None, None)
-    #assume for each iterator the records come in coordinate sorted order
+    #assume for each stream the records come in coordinate sorted order
     for record1 in sIT1:
         prev_record1 = record1
         r1 = record1.split('\t')
         (group1, sid1, c1, s1, e1, len1, st1) = r1[:clsnapconf.STRAND_COL+1]
+        #3 cases:
+        #1) stream 2 is behind/not comparable therefore we need to read from it at least once more
         #need to loop through more of 2
+        #CAVEAT: if we have a record from stream 2 but its group or chromosome doesn't match, we shelve it
+        #we always save stream 2 records which are not the same group/chromosome for later
         try:
-            while prev_r2 is None or s2 < s1:
+            while prev_r2 is None or (group2 == group1 and c2 == c1 and \
+                                      (s2 < s1 or (s2 == s1 and e2 < e1))):
                 if prev_r2 is not None:
                     outfile.write('\t'.join(prev_r2)+"\n")
                 record2 = sIT2.next()
@@ -107,17 +113,16 @@ def process_combined_datasource_bulk_queries(queries, datasrcs, endpoint, outfil
         except StopIteration, si:
             prev_r2 = None
             r2_done = True
-        #exact match?
+        #2) check for exact match
         merged = merge(r1, prev_r2)
         if merged is not None:
             outfile.write('\t'.join(merged)+"\n")
             prev_r2 = None
             continue
-        #need to loop through more of 1
-        #if prev_r2 is None or group2 != group1 or c2 != c1 or s2 > s1:
+        #3) stream 1's behind, write it out and read at least one more from stream 1
         outfile.write('\t'.join(r1)+"\n")
-        continue
-    #pick up the remaining ones of iterator2 (if there are any)
+
+    #pick up the remaining ones of stream 2 (if there are any)
     if not r2_done:
         try:
             if prev_r2 is None:
@@ -129,10 +134,6 @@ def process_combined_datasource_bulk_queries(queries, datasrcs, endpoint, outfil
                 prev_r2 = record2.rstrip().split('\t')
         except StopIteration, si:
             prev_r2 = None
-
-
-                
-
 
 
 def process_bulk_queries(args):
