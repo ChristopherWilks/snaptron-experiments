@@ -1,0 +1,4 @@
+region	exact	filters	group
+chr2:29223529-29232303	1	strand=-	Group1
+chr2:29223529-29225456	1	strand=-	Group2
+chr2:29223529-29224617	1	strand=-	Group3
