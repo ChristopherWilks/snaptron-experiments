@@ -132,7 +132,11 @@ def junction_inclusion_ratio(args, results, group_list, sample_records, print_ou
             sample_stats[sample][group_a]=0
         if group_b not in sample_stats[sample]:
             sample_stats[sample][group_b]=0
-        sample_scores[sample] = calc_jir(sample_stats[sample][group_a], sample_stats[sample][group_b])
+        #need to have a minimum number of reads in the denominator
+        if (sample_stats[sample][group_a] + sample_stats[sample][group_b]) < args.min_count_jir:
+            sample_scores[sample] = -100
+        else:
+            sample_scores[sample] = calc_jir(sample_stats[sample][group_a], sample_stats[sample][group_b])
     missing_sample_ids = set()
     counter = 0
     output = []
@@ -142,10 +146,13 @@ def junction_inclusion_ratio(args, results, group_list, sample_records, print_ou
         output.append(outstr)
         sys.stdout.write(outstr)
     for sample in sorted(sample_scores.keys(),key=sample_scores.__getitem__,reverse=True):
+        score = sample_scores[sample]
+        #should be at the bottom of the samples where everything else is disqualified
+        if score == -100:
+            break
         counter += 1
         if args.limit > -1 and counter > args.limit:
             break
-        score = sample_scores[sample]
         if no_sample_records:
             sample_records[sample]=""
         elif sample not in sample_records:

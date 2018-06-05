@@ -100,7 +100,7 @@ class TestJIR(unittest.TestCase):
 
     #using TCGA as the datasrc
     def test_junction_inclusion_ratio(self):
-        args = Namespace(function='jir',noheader=False,limit=-1,datasrc='tcga')
+        args = Namespace(function='jir',noheader=False,limit=-1,datasrc='tcga',min_count_jir=1)
         groups = ['A_NormalTSS', 'B_AltTSS'] 
         group_list = set()
         map(lambda x: group_list.add(x), groups)
