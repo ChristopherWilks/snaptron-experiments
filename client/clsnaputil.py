@@ -241,7 +241,7 @@ def round_like_R(num, ndigits=0):
 #wiggletools print non_unique_base_coverage.bw.auc AUC non_unique_base_coverage.bw
 def normalize_coverage(args, record, divisor_col, scaling_factor):
     fields = record.rstrip().split('\t')
-    if fields[clsnapconf.INTRON_ID_COL] == 'snaptron_id':
+    if fields[clsnapconf.INTRON_ID_COL-1] == 'DataSource:Type' or fields[clsnapconf.INTRON_ID_COL] == 'snaptron_id':
         return record
     #do the full normalization + scaling here
     #the internal splits on ':' are all for sample_id:coverage pairs
