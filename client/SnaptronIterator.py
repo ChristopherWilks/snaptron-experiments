@@ -25,11 +25,12 @@ import clsnapconf
 
 class SnaptronIterator():
 
-    def __init__(self,query_param_string,instance,endpoint):
+    def __init__(self,query_param_string,instance,endpoint,processor=None):
         self.buffer_size = clsnapconf.BUFFER_SIZE_BYTES
         self.query_param_string = query_param_string
         self.instance = instance
         self.endpoint = endpoint
+        self.processor = processor
 
         self.idx = -1
         self.total_count = 0
@@ -48,6 +49,8 @@ class SnaptronIterator():
             self.total_count += lines_read
             self.idx=0;
         if self.idx != 0 or lines_read > 0:
+            if self.processor:
+                return this.processor.process(self.lines[self.idx])
             return self.lines[self.idx]
         raise StopIteration
 

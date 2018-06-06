@@ -28,23 +28,21 @@ from SnaptronIterator import SnaptronIterator
 import clsnapconf
 import clsnaputil
 
-ENDPOINTS={'snaptron':'snaptron','sample':'samples','annotation':'annotations','density':'density','breakpoint':'breakpoint'}
 
 class SnaptronIteratorBulk(SnaptronIterator):
 
-    def __init__(self,query_param_string,instance,endpoint,outfile_handle):
-        SnaptronIterator.__init__(self,query_param_string,instance,endpoint) 
+    def __init__(self,query_param_string,instance,endpoint,outfile_handle,processor=None):
+        SnaptronIterator.__init__(self,query_param_string,instance,endpoint,processor=processor) 
 
         self.outfile_handle = outfile_handle
         self.SERVICE_URL=clsnapconf.SERVICE_URL
-        self.ENDPOINTS=ENDPOINTS
         self.construct_query_string()
         self.execute_query_string()
 
     def construct_query_string(self):
         super_string = clsnapconf.BULK_QUERY_DELIMITER.join(self.query_param_string)
         self.data_string = urllib.urlencode({"groups":base64.b64encode(super_string)})
-        self.query_string = "%s/%s/%s" % (self.SERVICE_URL,self.instance,self.ENDPOINTS[self.endpoint])
+        self.query_string = "%s/%s/%s" % (self.SERVICE_URL,self.instance,clsnapconf.HTTP_ENDPOINTS[self.endpoint])
         return (self.query_string, self.data_string)
     
     @clsnaputil.retry((urllib2.HTTPError,urllib2.URLError), tries=17, delay=2, backoff=2)
@@ -54,13 +52,16 @@ class SnaptronIteratorBulk(SnaptronIterator):
     def execute_query_string(self):
         sys.stderr.write("%s\n" % (self.query_string))
         self.response = self.urlopen()
-        if self.outfile_handle is None:
-            return self.response
-        #since we're doing bulk, just write out as fast as we can
-        buf_ = self.response.read(self.buffer_size)
-        while(buf_ != None and buf_ != ''):
-            self.outfile_handle.write(buf_)
+        if self.processor is not None or self.outfile_handle is not None:
             buf_ = self.response.read(self.buffer_size)
+            while(buf_ != None and buf_ != ''):
+                if self.processor:
+                    buf_ += self.response.readline()
+                    [self.processor.process(line) for line in buf_.split('\n')]
+                else:
+                    #since we're doing bulk, just write out as fast as we can
+                    self.outfile_handle.write(buf_)
+                buf_ = self.response.read(self.buffer_size)
 
     def fill_buffer(self):
         #extend parent version to catch HTTP specific error
