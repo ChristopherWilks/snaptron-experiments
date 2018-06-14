@@ -10,8 +10,10 @@ def mean(vals):
     return s/float(count)
 
 def median(vals):
-    vals = sorted([float(x) for x in vals])
     count = len(vals)
+    if count == 1:
+        return float(vals[0])
+    vals = sorted([float(x) for x in vals])
     idx1 = int(count/2)
     idx2 = idx1 + 1
     #are we odd?
@@ -30,9 +32,7 @@ def main(args):
         starting_col = 1
     header = True
     base_counts = []
-    fin = open('h2',"rb")
     for line in sys.stdin:
-    #for line in fin:
         #skip header
         if header:
             header = False
