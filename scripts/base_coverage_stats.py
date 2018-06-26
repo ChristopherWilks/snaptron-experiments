@@ -5,7 +5,8 @@ import argparse
 
 
 def mean(vals):
-    s = sum([float(x) for x in vals])
+    #s = sum([float(x) for x in vals])
+    s = sum(vals)
     count = len(vals)
     return s/float(count)
 
@@ -13,7 +14,8 @@ def median(vals):
     count = len(vals)
     if count == 1:
         return float(vals[0])
-    vals = sorted([float(x) for x in vals])
+    #vals = sorted([float(x) for x in vals])
+    vals = sorted(vals)
     idx1 = int(count/2)
     idx2 = idx1 + 1
     #are we odd?
@@ -22,7 +24,7 @@ def median(vals):
     return (vals[idx1]+vals[idx2])/2.0
 
 
-ops={'mean':mean,'median':median}
+ops={'sum':sum, 'mean':mean, 'median':median}
 def main(args):
     #which column do the base coverge values start in?
     #if doing a sample subset, there's only one initial non-value column
@@ -38,9 +40,12 @@ def main(args):
             header = False
             continue
         fields = line.rstrip().split('\t')
-        stat = sample_op(fields[starting_col:])
+        stat = sample_op([float(x) for x in fields[starting_col:]])
         if not args.suppress_rows:
-            sys.stdout.write("sample %s\t%s\n" % (args.sample_stat, str(stat)))
+            if not args.row_labels:
+                sys.stdout.write("sample %s\t%s\n" % (args.sample_stat, str(stat)))
+            else:
+                sys.stdout.write("%s\t%s\n" % ('\t'.join(fields[0:starting_col]), str(stat)))
         base_counts.append(stat)
     if len(base_counts) > 0:
         stat = ops[args.base_stat](base_counts)
@@ -50,9 +55,10 @@ def main(args):
 def create_parser(disable_header=False):
     parser = argparse.ArgumentParser(description='Base coverage statistics')
     parser.add_argument('--subset', action='store_const', const=True, default=False, help='use if Snaptron client was called with --samples ...')
-    parser.add_argument('--sample-stat', metavar='cross-sample summary operation to perform', type=str, default='median', help='how to summarize the data *per row*, "mean" or "median"?')
+    parser.add_argument('--sample-stat', metavar='cross-sample summary operation to perform', type=str, default='median', help='how to summarize the data *per row*, "mean", "median", or "sum"?')
     parser.add_argument('--base-stat', metavar='cross-base summary operation to perform', type=str, default='median', help='how to summarize across all rows')
     parser.add_argument('--suppress-rows', action='store_const', const=True, default=False, help='should we suppress output of individual row numbers?')
+    parser.add_argument('--row-labels', action='store_const', const=True, default=False, help='should we include the labels at the start of each row?')
     return parser
 
 if __name__ == '__main__':
