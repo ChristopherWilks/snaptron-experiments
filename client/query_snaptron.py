@@ -26,6 +26,7 @@ import argparse
 import gzip
 import csv
 import re
+from operator import itemgetter
 
 import clsnapconf
 import clsnaputil
@@ -97,63 +98,41 @@ def merge(record1, record2):
         return r1
     return None
 
-
-def process_combined_datasource_bulk_queries(queries, datasrcs, endpoint, outfile, groups):
-    #to maintain and ordering based on which group gets queried first
-    #assume that if there are duplicate group names, they cluster together
-    group_map = {g:i for (i,g) in enumerate(groups)}
-    #for header
-    group_map['Group']=-1
-    sIT1 = SnaptronIteratorBulk(queries, datasrcs[0], endpoint, None)
-    sIT2 = SnaptronIteratorBulk(queries, datasrcs[1], endpoint, None)
-    #need to loop through all records to merge ones which are matches between the datasources,
-    #otherwise just write out to the filehandle
-    prev_r1 = None
-    prev_r2 = None
-    r2_done = False
-    (group2, sid2, c2, s2, e2, len2, st2) = (None, None, None, None, None, None, None)
-    #assume for each stream the records come in coordinate sorted order
-    for record1 in sIT1:
-        prev_record1 = record1
-        r1 = record1.split('\t')
-        (group1, sid1, c1, s1, e1, len1, st1) = r1[:clsnapconf.STRAND_COL+1]
-        #3 cases:
-        #1) stream 2 is behind/not comparable therefore we need to read from it at least once more
-        #need to loop through more of 2
-        #CAVEAT: if we have a record from stream 2 but its group or chromosome doesn't match, we shelve it
-        #we always save stream 2 records which are not the same group/chromosome for later
-        try:
-            while prev_r2 is None or group_map[group2] < group_map[group1] or c2 < c1 or \
-                                      (group2 == group1 and c2 == c1 and (s2 < s1 or (s2 == s1 and e2 < e1))):
-                if prev_r2 is not None:
-                    outfile.write('\t'.join(prev_r2)+"\n")
-                record2 = sIT2.next()
-                prev_r2 = record2.rstrip().split('\t')
-                (group2, sid2, c2, s2, e2, len2, st2) = prev_r2[:clsnapconf.STRAND_COL+1]
-        except StopIteration, si:
-            prev_r2 = None
-            r2_done = True
-        #2) check for exact match
-        merged = merge(r1, prev_r2)
-        if merged is not None:
-            outfile.write('\t'.join(merged)+"\n")
-            prev_r2 = None
-            continue
-        #3) stream 1's behind, write it out and read at least one more from stream 1
-        outfile.write('\t'.join(r1)+"\n")
-
-    #pick up the remaining ones of stream 2 (if there are any)
-    if not r2_done:
-        try:
-            if prev_r2 is None:
-                record2 = sIT2.next()
-                prev_r2 = record2.rstrip().split('\t')
-            while prev_r2 is not None:
-                outfile.write('\t'.join(prev_r2)+"\n")
-                record2 = sIT2.next()
-                prev_r2 = record2.rstrip().split('\t')
-        except StopIteration, si:
-            prev_r2 = None
+def process_combined_datasource_bulk_queries_multi(queries, datasrcs, endpoint, outfile, groups):
+    records = {}
+    iTs = []
+    for (i,datasrc) in enumerate(datasrcs):
+        iTs.append(SnaptronIteratorBulk(queries, datasrcs[i], endpoint, None))
+    its_done = 0
+    num_its = len(iTs)
+    header = True
+    while its_done < num_its:
+        for (i, sIT) in enumerate(iTs):
+            if sIT is None:
+                continue
+            try:
+                record = sIT.next()
+                r1 = record.split('\t')
+                (group1, sid1, c1, s1, e1, len1, st1) = r1[:clsnapconf.STRAND_COL+1]
+                if c1 == 'chromosome':
+                    if header:
+                        outfile.write(record+'\n')
+                        header = False
+                    continue
+                key = (group1, c1, int(s1), int(e1))
+                final_record = record
+                if key in records:
+                    r2 = records[key].split('\t')
+                    merged = merge(r2, r1)
+                    if merged:
+                        final_record = '\t'.join(merged)
+                records[key] = final_record
+            except StopIteration, si:
+                its_done += 1
+                iTs[i] = None
+    #now read out all the junction rows sorted on (group, chromosome, start, end)
+    for key in sorted(records.keys(), key=itemgetter(0,1,2,3)):
+        outfile.write(records[key]+"\n")
 
 
 def process_bulk_queries(args):
@@ -168,7 +147,7 @@ def process_bulk_queries(args):
     datasrcs = args.datasrc.split(',')
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
         if len(datasrcs) > 1:
-            process_combined_datasource_bulk_queries(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasrcs, endpoint, outfile, groups)
+            process_combined_datasource_bulk_queries_multi(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasrcs, endpoint, outfile, groups)
         else:
             sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile)
     outfile.close()
