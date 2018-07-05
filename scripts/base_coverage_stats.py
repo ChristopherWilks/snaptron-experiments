@@ -46,7 +46,7 @@ def main(args):
             else:
                 sys.stdout.write("%s\t%s\n" % ('\t'.join(fields[0:starting_col]), '\t'.join([str(stat) for stat in stats])))
         base_counts.append(stats)
-    if len(base_counts) > 0:
+    if not args.suppress_final and len(base_counts) > 0:
         sys.stdout.write("aggregate coordinate range summaries of cross-sample, per-base coverage:\n")
         base_ops = [ops[op] for op in args.base_stat.split(',')]
         for op in base_ops:
@@ -60,6 +60,7 @@ def create_parser(disable_header=False):
     parser.add_argument('--sample-stat', metavar='cross-sample summary(s) operation to perform', type=str, default='mean', help='how to summarize the data *per row*, "mean", "median", "sum", or 2 or more of them (e.g. median,mean,sum)?')
     parser.add_argument('--base-stat', metavar='cross-base summary(s) operation to perform', type=str, default='mean', help='how to summarize across all rows')
     parser.add_argument('--suppress-rows', action='store_const', const=True, default=False, help='should we suppress output of individual row numbers?')
+    parser.add_argument('--suppress-final', action='store_const', const=True, default=False, help='should we suppress the final output of aggregate stats?')
     parser.add_argument('--row-labels', action='store_const', const=True, default=False, help='should we include the labels at the start of each row?')
     parser.add_argument('--noheader', action='store_const', const=True, default=False, help='if there is no header in the in put data')
     parser.add_argument('--base-start-col', metavar='column index starting from 0', type=int, default=4, help='column index where base values start')
