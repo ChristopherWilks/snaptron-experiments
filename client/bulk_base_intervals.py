@@ -144,9 +144,9 @@ def main(args):
     processor = None
     outfile = None
 
+    gout = None
+    eout = None
     if args.summary == 'gene_exon':
-        gout = None
-        eout = None
         if args.bulk_query_gzip:
             gout = gzip.open(args.bulk_query_file + ".snapout.genes.tsv.gz", "wb")
             eout = gzip.open(args.bulk_query_file + ".snapout.exons.tsv.gz", "wb")
@@ -158,15 +158,19 @@ def main(args):
         if args.bulk_query_gzip:
             outfile = gzip.open(args.bulk_query_file + ".per_base.tsv.gz", "wb")
         else:
-            outfile = open(args.bulk_query_file + ".per_base.tsv", "wb")
+            outfile = sys.stdout
 
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
         sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile, processor=processor)
 
     if processor is not None:
         processor.finish()
-    gout.close()
-    eout.close()
+    if gout is not None:
+        gout.close()
+        eout.close()
+    if args.bulk_query_gzip and outfile is not None:
+        outfile.close()
+    sys.stderr.write("FINISHED\n")
 
 
 if __name__ == '__main__':
