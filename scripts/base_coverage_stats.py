@@ -5,7 +5,6 @@ import argparse
 
 
 def mean(vals):
-    #s = sum([float(x) for x in vals])
     s = sum(vals)
     count = len(vals)
     return s/float(count)
@@ -14,7 +13,6 @@ def median(vals):
     count = len(vals)
     if count == 1:
         return float(vals[0])
-    #vals = sorted([float(x) for x in vals])
     vals = sorted(vals)
     idx1 = int(count/2)
     idx2 = idx1 + 1
@@ -28,11 +26,11 @@ ops={'sum':sum, 'mean':mean, 'median':median}
 def main(args):
     #which column do the base coverge values start in?
     #if doing a sample subset, there's only one initial non-value column
-    starting_col = 4
+    starting_col = args.base_start_col
     sample_op = ops[args.sample_stat]
     if args.subset:
         starting_col = 1
-    header = True
+    header = not args.noheader
     base_counts = []
     for line in sys.stdin:
         #skip header
@@ -59,6 +57,8 @@ def create_parser(disable_header=False):
     parser.add_argument('--base-stat', metavar='cross-base summary operation to perform', type=str, default='median', help='how to summarize across all rows')
     parser.add_argument('--suppress-rows', action='store_const', const=True, default=False, help='should we suppress output of individual row numbers?')
     parser.add_argument('--row-labels', action='store_const', const=True, default=False, help='should we include the labels at the start of each row?')
+    parser.add_argument('--noheader', action='store_const', const=True, default=False, help='if there is no header in the in put data')
+    parser.add_argument('--base-start-col', metavar='column index starting from 0', type=int, default=4, help='column index where base values start')
     return parser
 
 if __name__ == '__main__':
