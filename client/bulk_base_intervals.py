@@ -158,7 +158,6 @@ def main(args):
         if args.bulk_query_gzip:
             outfile = gzip.open(args.bulk_query_file + ".per_base.tsv.gz", "wb")
         else:
-            #outfile = open(args.bulk_query_file + ".per_base.tsv", "wb")
             outfile = sys.stdout
 
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
