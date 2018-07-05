@@ -372,14 +372,15 @@ def report_splice_mates(args, results, group_list, sample_records):
     subdelim='\t'
     if len(group_list) == 0:
         group_list = [None]
-    print_header = True
+    sample_ids = results['base_sample_ids']
+    print_header = False if 'not_first' in results else True
+    results['not_first']=True
+    #TODO: loop through available groups, not ones in the complete list
+    #for group in results['all_sample_sums'].keys():
     for group in group_list:
         totals = results['all_sample_sums'][group]
-        sample_ids = results['base_sample_ids']
         base_vals = results['base_vals'][group]
         for i, base_val in enumerate(base_vals):
-            #if base_val == 0:
-            #    continue
             if sample_ids[i] not in totals:
                 totals[sample_ids[i]] = 0
             totals[sample_ids[i]] += base_val
