@@ -322,8 +322,12 @@ sum_sample_coverage_fields = ['all_sample_sums', 'junctions', 'base_coords', 'ba
 def sum_sample_coverage(args, results, record, group, out_fh=None):
     '''Sums coverage for every splice junction for every sample
         across all junctions while also tracking per-sample coverage
-        for each junction separately.'''
-
+        for each junction separately.
+        Used for intron retention queries; for these, 
+        there is a second query made to to the base endpoint
+        which DOES NOT go through the SnaptronIteratorBulk interface!
+        Rather, it's part of the SnaptronIteratorHTTP multi-query interface.
+    '''
 
     if out_fh is not None:
         out_fh.write(record+"\n")
@@ -332,13 +336,12 @@ def sum_sample_coverage(args, results, record, group, out_fh=None):
         results['header_fields']=fields[:clsnapconf.SAMPLE_IDS_COL]
         return
     #check for bases header
-    if fields[clsnapconf.INTRON_ID_COL] == 'chromosome':
-        results['base_sample_ids']=fields[clsnapconf.INTERVAL_END_COL:]
+    if fields[clsnapconf.INTRON_ID_COL] == 'chromosome' or fields[0] == 'DataSource:Type':
+        results['base_sample_ids']=fields[args.BASE_START_COL:]
         return
     #need to extract the group from the field and then shift over by 1
     if group == "":
        group = fields[0]
-       #fields = fields[1:]
     for field in sum_sample_coverage_fields:
         if field not in results:
             results[field] = {}
@@ -346,10 +349,16 @@ def sum_sample_coverage(args, results, record, group, out_fh=None):
             results[field][group] = {}
     #if we get back base coverage, handle differently, only expect one row
     if fields[0][-1] == 'B' or fields[1][:3] == 'chr':
-        results['base_coords'][group] = fields[:clsnapconf.INTERVAL_END_COL]
+        if args.BASE_START_COL == 1:
+            results['base_coords'][group] = [fields[0]]
+        else:
+            results['base_coords'][group] = fields[:args.BASE_START_COL-1]
         #a little hack to ensure the bases results line up with the junction columns
-        results['base_coords'][group][0]="%s\t-1" % results['base_coords'][group][0]
-        results['base_vals'][group] = [float(base_val) for base_val in fields[clsnapconf.INTERVAL_END_COL:]] 
+        if len(results['base_coords'][group]) == 1:
+            results['base_coords'][group][0]="%s\t-1\t\t\t" % results['base_coords'][group][0]
+        else:
+            results['base_coords'][group][0]="%s\t-1" % results['base_coords'][group][0]
+        results['base_vals'][group] = [float(base_val) for base_val in fields[args.BASE_START_COL:]] 
         return
     samples = fields[clsnapconf.SAMPLE_IDS_COL][1:].split(',')
     results['junctions'][group][fields[clsnapconf.INTRON_ID_COL]] = fields
@@ -376,7 +385,6 @@ def report_splice_mates(args, results, group_list, sample_records):
     print_header = False if 'not_first' in results else True
     results['not_first']=True
     #TODO: loop through available groups, not ones in the complete list
-    #for group in results['all_sample_sums'].keys():
     for group in group_list:
         totals = results['all_sample_sums'][group]
         base_vals = results['base_vals'][group]

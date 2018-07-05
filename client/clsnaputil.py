@@ -109,6 +109,10 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, datasour
             second_query.append("group=%s" % (group))
         second_query.append("%s=%s" % (mapped_field, record['region']))
         second_query.append(either)
+        args.BASE_START_COL = clsnapconf.INTERVAL_END_COL + 1
+        if 'samples' in record and record['samples'] is not None:
+            second_query.append("fields=%s" % (record['samples']))
+            args.BASE_START_COL = 1
         queries.append(second_query)
     queries = ["&".join(q) for q in queries]
     return queries
