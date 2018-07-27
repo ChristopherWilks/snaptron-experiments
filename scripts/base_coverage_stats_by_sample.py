@@ -37,6 +37,8 @@ def main(args):
         #skip header
         if header:
             header = False
+            if args.label is not None:
+                sys.stdout.write("label\t")
             sys.stdout.write('operation\t'+'\t'.join(fields[args.base_start_col:])+'\n')
             continue
         num_rows += 1
