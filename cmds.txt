@@ -1,0 +1,58 @@
+cut -f 3 fully_annotated_groups.srav2.tsv | perl -ne 'chomp; @f=split(/;/,$_); for $x (@f) { ($a,$c1,$c2)=split(/[:,]/,$x); $h{$a}->[0]+=$c1; $h{$a}->[1]+=$c2; } END { for $x (sort {$h{$b}->[1] <=> $h{$a}->[1]} keys %h) { print "$x\t".$h{$x}->[0]."\t".$h{$x}->[1]."\n";}}'
+
+python client/query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --filters "samples_count>=2" --datasrc mouseling | cut -f 14 | less
+
+python client/query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --filters "samples_count>=100&annotated=1" --datasrc test | wc -l
+
+python client/query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --filters "samples_count>=100&annotated=1" --endpoint genes --normalize  recount 2>/dev/null | head -2 | tail -1 | cut -f 13-
+
+#calculate summary stats from list of samples and raw (or normalized) coverages
+head -6 s2 | tail -1 | cut -f 13 | perl -ne 'chomp; $s=$_; @f=split(/,/,$s); shift(@f); $sum=0; $sl=scalar (@f); @s=sort { $a <=> $b} (map { ($a,$b)=split(/:/); $sum+=$b; $b;} @f); $m=-1; $avg=$sum/$sl; if($sl % 2 == 0) { $m=($s[$sl/2]+$s[($sl/2)-1])/2; } else { $m=$s[int($sl/2)];} print "$sl\t$sum\t$avg\t$m\n";'
+
+python client/query_snaptron.py --region "chr2:29446395-30142858" --contains 1 --filters "samples_count>=100&annotated=1" --endpoint genes --normalize recount --datasrc supermouse | grep "ENSMUSG00000039844.19"| cut -f 13 g2 | perl -ne 'chomp; @f=split(/,/,$_); shift(@f); print "".join("\t",(map { ($a,$b)=split(/:/); $b;} @f))."\n";' > g2a
+diff test_gene_coverages.tsv g2a
+
+#Darman SF3B1 fully unannotated junctions on the same strand
+python ./snaptron.py "regions=SF3B1&sids=SRP063493&rfilter=annotated:0&rfilter=left_annotated:0&rfilter=right_annotated:0&rfilter=strand:-"
+
+
+#double checking sample count ordering in JLing's output for missing samples
+python client/query_snaptron.py --region "chr10:1001014-1001014" --datasrc tcga --either 1 --samples '60043,60498,60531,60738,60993,61174,61448,61853,61890,61951,61964,61982,62064,62193,62262,62267,62342,62437,62862,63216,63255,63364,63440,63485,63841,63876,64224,64375,64458,64612,64622,64871,65184,65320,65362,65553,65976,66262,66299,66613,67034,67063,67077,67442,67591,67956,68045,68066,68306,68328,68855,69026,69185,69288,69379,69435,69716,69756,69942,70038,70164,70355,70510,70543,70757,71033' | less
+
+
+time python client/query_snaptron.py --datasrc gtex,tcga --bulk-query-file data/alk_alt_tss.hg38.snap.tsv --bulk-query-stdout | cut -f1-10 > both.all
+
+
+cut -f 13,17 t2 | perl -ne 'chomp; ($s,$c)=split(/\t/,$_); $s=~s/^,//; @f=map { ($c1,$c2)=split(/:/); $c2; } sort { ($a1,$a2)=split(/:/,$a); ($b1,$b2)=split(/:/,$b); $a2 <=> $b2} split(/,/,$s); $len=scalar(@f); $m=-1; $m1=-1; if($len % 2 == 0) { $m1=$f[($len/2)-1]+$f[($len/2)]; print "$m1\t"; print "".$f[($len/2)-1]."\t"; print "".$f[($len/2)]."\n"; $m=($f[($len/2)-1]+$f[($len/2)])/2.0; } else { $m=$f[int(($len/2))]; } if($m != $c) { print "$s\t$c\t$m\t$m1\n";}' | grep ":"
+
+
+#GADPH (housekeeping gene) GTEx TS
+chr12:6,537,309-6,537,390
+python client/query_snaptron.py --query-file ./data/gadph.hg38.snap.tsv --function ts --datasrc gtex | tee ../rel_ts_list.tsv | Rscript ../scripts/tissue_specificty_testing.R
+python client/query_snaptron.py --regions "chr12:6537309-6537390" --either --filters 'strand=-&annotated=1' --function ts --datasrc gtex | tee ../rel_ts_list.tsv | Rscript ../scripts/tissue_specificty_testing.R
+
+
+#modify distribution of 1's in GADPH TS output
+cut -f 4 rel_ts_list.tsv.2 | sort | uniq -c | egrep -v -e '(NA)|(tissue)' | perl -ne 'chomp; @f=split(/\s+/,$_); ($j,$c)=splice(@f,0,2); $t=join(" ",@f); $max=$c if(!$max || $c > $max); $h{$t}=$c; END { $max+=2; for $k (keys %h) { $c = $h{$k}; $c = ($max - $c); print STDERR "$c\t$k\t$max\n"; print "GADPH1\t-1\t$c\t$k\n";}}' >> rel_ts_list.tsv.2b
+
+
+
+python query_snaptron.py --query-file /data3/repeat_screening/cassettes.100.200.10.100.snapin --function ts --datasrc gtex | tee ../cassettes.100.200.10.100.snapin.ts_list | ../scripts/adjust_kruskal_wallis_input.sh | tee ../cassettes.100.200.10.100.snapin.adjusted | Rscript ../scripts/tissue_specificty_testing.R
+
+
+zcat /data4/schatz/data/NA12878/comparisons/novel/novel_exons_bt.w11.either_end.pb.sorted.bases.snapout.bgz | python scripts/base_coverage_stats.py --row-labels --sample-stat sum > /data4/schatz/data/NA12878/comparisons/novel/novel_exons_bt.w11.either_end.pb.sorted.bases.snapout.bedgraph
+
+#bedgraph track config
+track type=bedGraph name=sums description=sum_over_all_gtex visibility=full color=200,100,0 altColor=0,100,200 priority=20 autoScale=on alwaysZero=off gridDefault=on graphType=points yLineOnOff=on windowingFunction=minimum smoothingWindow=off
+
+
+cat data/alk_alt_tss.hg38.snap.tsv | perl -ne 'chomp; if(!$h) { $h=1; print "$_\n"; next; } $f=$_; ($coord,$c1,$f1,$g)=split(/\t/,$f); ($c,$s,$e)=split(/[:-]/,$coord); for $i (1..25) { $s1=$s+$i; $e1=$e+$i; print "$c:$s1-$e1\t1\t$f1\t$g\n"; }' > data/test_3way.hg38.snap.tsv
+
+python client/query_snaptron.py --datasrc gtex,rpc,encode1159 --bulk-query-file data/alk_alt_tss.hg38.snap.tsv --bulk-query-stdout > t4
+
+fgrep "96359:2083149:15400574" t4 | perl -ne 'chomp; @f=split(/\t/,$_); @s=split(/,/,$f[12]); shift(@s); $s=0; $c=0; @v=sort { $a <=> $b } map { ($sid,$cn)=split(/:/,$_); $c++; $s+=$cn; $cn; } @s; $a=$s/$c; $m=($v[$c/2]+$v[($c/2)+1])/2; $sz=scalar(@v); print "$sz\t$c\t$s\t$a\t$m\t".$v[$#v]."\n";'
+
+
+
+#check per-row stats output with perl oneliner
+curl "http://snaptron.cs.jhu.edu/gtex/bases?regions=chr17:43055000-43056000" | perl -ne 'chomp; $f=$_; @f=split(/\t/,$f); if($f[1] eq "chromosome") { splice(@f,0,4); print "operation\t".join("\t",@f)."\n"; next; } $len=scalar(@f); for($i=4;$i<$len;$i++) { $h[$i-4]+=$f[$i]; } $num_rows++; END { print "mean"; $len=scalar(@h); for($i=0;$i<$len;$i++) { $nr=$h[$i]/$num_rows; if($nr==0) { print "\t0.0"; next; } printf("\t%.12g",$nr); } print "\n"; }' > t2c
