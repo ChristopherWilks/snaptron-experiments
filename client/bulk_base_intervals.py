@@ -35,18 +35,34 @@ class IntervalProcessor():
         self.group_start = start
         self.group_end = end
 
-    def __init__(self):
+    def __init__(self,exon_output_file):
         self.delim = '\t'
         self.col_offset = 4
         self._reset()
         self.first = True
+        self.eout = exon_output_file
+ 
+    def _summarize_by_exon(self):
+        sums = [0.0] * len(self.group_records[0][self.col_offset:])
+        for counts in self.group_records:
+            sums = [sums[i]+float(count) for (i,count) in enumerate(counts[self.col_offset:])]
+        return sums
 
     #vitual base functions to be implemented by child classes
-    def _write_header(self):
-        pass
+    def _write_header(self,line):
+        fields = line.split("\t")
+        self.eout.write(fields[0]+"\tbp_length\t"+"\t".join(fields[1:])+"\n") 
 
-    def _write_records(self,new_group):
-        pass
+    def _write_records(self, new_group):
+        '''Write out previously tracked exon (group)'''
+
+        #assume each basic group is an exon (gene_name:chrm:exon_start:exon_end)
+        #handle previous exon (doesn't include current exon's counts)
+        exon_sums = self._summarize_by_exon()
+        exon_bp_length = (int(self.group_end) - int(self.group_start)) + 1
+        #now print the previous exon if we're still reading lines
+        self.eout.write("%s\t%d\t%s\t%s\t%s\t%s\n" % (self.group,exon_bp_length,self.group_chrm,self.group_start,self.group_end,self.delim.join([str(x) for x in exon_sums])))
+        return (exon_sums, exon_bp_length)
 
     def process(self,record):
         if self.first:
@@ -87,38 +103,27 @@ class GeneExonIntervalProcessor(IntervalProcessor):
     def __init__(self,gene_output_file,exon_output_file):
         self.prev_gene_name = None
         self.gout = gene_output_file
-        self.eout = exon_output_file
         self.gene_start = -1
         self.gene_sums = []
         self.gene_bp_length = 0
 
-        IntervalProcessor.__init__(self)
+        IntervalProcessor.__init__(self, exon_output_file)
 
     def _gene_name_from_group(self,group):
         if group is None:
             return None
         return group.split(':')[0]
 
-    def _summarize_by_exon(self):
-        sums = [0.0] * len(self.group_records[0][self.col_offset:])
-        for counts in self.group_records:
-            sums = [sums[i]+float(count) for (i,count) in enumerate(counts[self.col_offset:])]
-        return sums
     
     def _write_header(self,line):
+        IntervalProcessor._write_header(self, line)
         fields = line.split("\t")
         self.gout.write(fields[0]+"\tbp_length\t"+"\t".join(fields[1:])+"\n") 
-        self.eout.write(fields[0]+"\tbp_length\t"+"\t".join(fields[1:])+"\n") 
 
     def _write_records(self,new_group):
         '''Write out previously tracked gene/exon (group)'''
 
-        #assume each basic group is an exon (gene_name:chrm:exon_start:exon_end)
-        #handle previous exon (doesn't include current exon's counts)
-        exon_sums = self._summarize_by_exon()
-        exon_bp_length = (int(self.group_end) - int(self.group_start)) + 1
-        #now print the previous exon if we're still reading lines
-        self.eout.write("%s\t%d\t%s\t%s\t%s\t%s\n" % (self.group,exon_bp_length,self.group_chrm,self.group_start,self.group_end,self.delim.join([str(x) for x in exon_sums])))
+        (exon_sums, exon_bp_length) = IntervalProcessor._write_records(self, new_group)
 
         #keep track of size and end of each subsequent exon as it may be the gene end as well
         self.gene_end = self.group_end
@@ -135,7 +140,6 @@ class GeneExonIntervalProcessor(IntervalProcessor):
             self.gene_start = -1
             self.gene_sums = []
             self.gene_bp_length = 0
-        
     
 def main(args):
 
@@ -146,17 +150,20 @@ def main(args):
 
     gout = None
     eout = None
+    outf_suffix = ""
+    openF = open
+    if args.bulk_query_gzip:
+        openF = gzip.open
+        outf_suffix = ".gz"
+    if 'exon' in args.summary:
+        eout = openF(args.bulk_query_file + ".snapout.exons.tsv%s" % (outf_suffix), "wb")
+        processor = IntervalProcessor(eout)
     if args.summary == 'gene_exon':
-        if args.bulk_query_gzip:
-            gout = gzip.open(args.bulk_query_file + ".snapout.genes.tsv.gz", "wb")
-            eout = gzip.open(args.bulk_query_file + ".snapout.exons.tsv.gz", "wb")
-        else:
-            gout = open(args.bulk_query_file + ".snapout.genes.tsv", "wb")
-            eout = open(args.bulk_query_file + ".snapout.exons.tsv", "wb")
+        gout = openF(args.bulk_query_file + ".snapout.genes.tsv%s" % (outf_suffix), "wb")
         processor = GeneExonIntervalProcessor(gout,eout)
     elif args.summary == 'single_base':
         if args.bulk_query_gzip:
-            outfile = gzip.open(args.bulk_query_file + ".per_base.tsv.gz", "wb")
+            outfile = openF(args.bulk_query_file + ".per_base.tsv%s" % (outf_suffix), "wb")
         else:
             outfile = sys.stdout
 
@@ -167,6 +174,7 @@ def main(args):
         processor.finish()
     if gout is not None:
         gout.close()
+    if eout is not None:
         eout.close()
     if args.bulk_query_gzip and outfile is not None:
         outfile.close()
@@ -176,7 +184,7 @@ def main(args):
 if __name__ == '__main__':
     #we can always add to these
     parser = query_snaptron.create_parser()
-    parser.add_argument('--summary', metavar='(single_base)|gene_exon', type=str, default='single_base', help='Which summary processor to use? default is single base (no summary)')
+    parser.add_argument('--summary', metavar='(single_base)|gene_exon|exon', type=str, default='single_base', help='Which summary processor to use? default is single base (no summary)')
     args = parser.parse_args()
     if args.region is None and args.metadata is None and args.query_file is None and args.bulk_query_file is None:
         sys.stderr.write("Error: no region-related arguments passed in, exiting\n")
