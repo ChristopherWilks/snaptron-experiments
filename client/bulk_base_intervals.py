@@ -144,6 +144,12 @@ class GeneExonIntervalProcessor(IntervalProcessor):
 def main(args):
 
     (query_params_per_group, groups, endpoint) = query_snaptron.parse_query_params(args)
+    #server side processing requested, update queries accordingly
+    if args.summary == 'server':
+        #we don't want a header for a server side calculation
+        query_params_per_group[0] = query_params_per_group[0].replace('&header=1','')
+        axis2int = {'row':'0','col':'1'}
+        query_params_per_group = [q+"&calc=1&calc_axis=%s&calc_op=%s" % (axis2int[args.axis], args.op) for q in query_params_per_group]
 
     processor = None
     outfile = None
@@ -161,9 +167,10 @@ def main(args):
     if args.summary == 'gene_exon':
         gout = openF(args.bulk_query_file + ".snapout.genes.tsv%s" % (outf_suffix), "wb")
         processor = GeneExonIntervalProcessor(gout,eout)
-    elif args.summary == 'single_base':
+    elif args.summary == 'single_base' or args.summary == 'server':
+        #no processor to use here
         if args.bulk_query_gzip:
-            outfile = openF(args.bulk_query_file + ".per_base.tsv%s" % (outf_suffix), "wb")
+            outfile = openF(args.bulk_query_file + ".raw.tsv%s" % (outf_suffix), "wb")
         else:
             outfile = sys.stdout
 
@@ -184,7 +191,9 @@ def main(args):
 if __name__ == '__main__':
     #we can always add to these
     parser = query_snaptron.create_parser()
-    parser.add_argument('--summary', metavar='(single_base)|gene_exon|exon', type=str, default='single_base', help='Which summary processor to use? default is single base (no summary)')
+    parser.add_argument('--summary', metavar='(single_base)|gene_exon|exon|server', type=str, default='single_base', help='Which summary processor to use (default=single_base)? "single_base" is essentially no summary; "server" means all the calculation is done on the server side and it uses the settings for --op and --axis')
+    parser.add_argument('--op', metavar='sum|mean', type=str, default='sum', help='Which type of operation to do (default=sum), if --summary is set to something other than "server" this is ignored')
+    parser.add_argument('--axis', metavar='row|col', type=str, default='row', help='Which axis to do operations on (default=row), if --summary is set to something other than "server" this is ignored')
     args = parser.parse_args()
     if args.region is None and args.metadata is None and args.query_file is None and args.bulk_query_file is None:
         sys.stderr.write("Error: no region-related arguments passed in, exiting\n")
