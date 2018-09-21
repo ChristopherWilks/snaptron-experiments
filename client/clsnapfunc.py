@@ -240,7 +240,7 @@ def count_samples_per_group(args, results, record, group, out_fh=None):
 
     sample_stats = results['samples']
     if out_fh is not None:
-        out_fh.write(record+"\n")
+        out_fh.write(record+'\n')
     if 'snaptron_id' in record:
         return
     fields = record.split('\t')
@@ -408,7 +408,7 @@ def sum_sample_coverage(args, results, record, group, out_fh=None):
     if 'junctions' not in results:
         results['junctions'] = {}
     if out_fh is not None:
-        out_fh.write(record+"\n")
+        out_fh.write(record+'\n')
     fields = record.split('\t')
     if 'snaptron_id' == fields[clsnapconf.INTRON_ID_COL]:
         results['header_fields']=fields[:clsnapconf.SAMPLE_IDS_COL]

@@ -51,13 +51,13 @@ class SnaptronIteratorBulk(SnaptronIterator):
 
     def construct_query_string(self):
         super_string = clsnapconf.BULK_QUERY_DELIMITER.join(self.query_param_string)
-        self.data_string = urlencode({"groups":base64.b64encode(bytes(super_string, 'utf-8'))})
+        self.data_string = urlencode({"groups":base64.b64encode(super_string.encode())})
         self.query_string = "%s/%s/%s" % (self.SERVICE_URL,self.instance,clsnapconf.HTTP_ENDPOINTS[self.endpoint])
         return (self.query_string, self.data_string)
     
     @clsnaputil.retry((HTTPError,URLError), tries=17, delay=2, backoff=2)
     def my_urlopen(self):
-       return urlopen(url=self.query_string, data=bytes(self.data_string, 'utf-8'))
+       return urlopen(url=self.query_string, data=self.data_string.encode())
 
     def execute_query_string(self):
         sys.stderr.write("%s\n" % (self.query_string))
@@ -67,10 +67,10 @@ class SnaptronIteratorBulk(SnaptronIterator):
             while(buf_ != None and buf_ != b''):
                 if self.processor:
                     buf_ += self.response.readline()
-                    [self.processor.process(line) for line in buf_.split('\n')]
+                    [self.processor.process(line.decode()) for line in buf_.split(b'\n')]
                 else:
                     #since we're doing bulk, just write out as fast as we can
-                    self.outfile_handle.write(buf_)
+                    self.outfile_handle.write(buf_.decode())
                 buf_ = self.response.read(self.buffer_size)
 
     def fill_buffer(self):

@@ -54,16 +54,18 @@ class SnaptronIterator():
     def fill_buffer(self):
         buf_ = self.response.read(self.buffer_size)
         if buf_ is None or buf_ == b'':
+            buf_ = buf_.decode()
             return 0
         bufs = [buf_]
         last_char = buf_[-1]
         #top up to next newline
-        while(last_char != None and last_char != b'\n'):
+        while(last_char != b'' and last_char != None and last_char != b'\n'):
             last_char = self.response.read(1)
             bufs.append(last_char)
         buf_ = b''.join(bufs)
+        buf_ = buf_.decode()
         #get rid of last newline so we dont get an emtpy string as a last array element
-        if buf_[-1] == b'\n':
+        if buf_[-1] == '\n':
             buf_ = buf_[:-1]
-        self.lines = buf_.split(b'\n')
+        self.lines = buf_.split('\n')
         return len(self.lines)

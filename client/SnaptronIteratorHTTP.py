@@ -69,4 +69,4 @@ class SnaptronIteratorHTTP(SnaptronIterator):
 if __name__ == '__main__':
     it = SnaptronIteratorHTTP('regions=chr1:1-100000&rfilter=samples_count>:5', 'srav1', 'snaptron')
     for r in it:
-        print("%s" % r)
+        sys.stdout.write("%s\n" % r)
