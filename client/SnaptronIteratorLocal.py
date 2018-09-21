@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # Copyright 2016, Christopher Wilks <broadsword@gmail.com>
 #
@@ -54,12 +54,12 @@ class SnaptronIteratorLocal(SnaptronIterator):
         #dump any stderr output, not necessarily an error
         #and it if its they'll see the stacktrace from the local module
         if len(errors) > 0:
-            sys.stderr.write(errors)
+            sys.stderr.write(str(errors))
             #raise RuntimeError("error from local command call %s" % (self.cmd))
         return 0
 
 if __name__ == '__main__':
-    sIT = SnaptronIteratorLocal('regions=chr2:29446395-30142858&contains=1&rfilter=samples_count>:100&rfilter=annotated:1','snaptron')
+    sIT = SnaptronIteratorLocal('regions=chr2:29446395-30142858&contains=1&rfilter=samples_count>:100&rfilter=annotated:1','srav2','snaptron')
     for record in sIT:
         print (record)
 

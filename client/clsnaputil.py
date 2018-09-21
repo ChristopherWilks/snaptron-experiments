@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # Copyright 2016, Christopher Wilks <broadsword@gmail.com>
 #
@@ -23,7 +23,15 @@ import os
 import argparse
 import gzip
 import math
-import urllib2
+try:
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
+    from urllib.error import URLError
+except ImportError:
+    from urllib2 import urlopen
+    from urllib2 import HTTPError
+    from urllib2 import URLError
+from builtins import range
 import re
 import time
 from functools import wraps
@@ -149,7 +157,7 @@ def breakup_junction_id_query(jids):
     queries = []
     if ln > clsnapconf.ID_LIMIT:
         jids = list(jids)
-        for i in xrange(0, ln, clsnapconf.ID_LIMIT):
+        for i in range(0, ln, clsnapconf.ID_LIMIT):
             idq = 'ids='+','.join([str(z) for z in jids[i:i+clsnapconf.ID_LIMIT]])
             queries.append(idq)
     else:
@@ -157,7 +165,7 @@ def breakup_junction_id_query(jids):
     return queries
 
 def samples_changed(args,cache_file):
-    response = urllib2.urlopen("%s/%s/samples?check_for_update=1" % (clsnapconf.SERVICE_URL,args.datasrc))
+    response = my_urlopen("%s/%s/samples?check_for_update=1" % (clsnapconf.SERVICE_URL,args.datasrc))
     remote_timestamp = response.read()
     remote_timestamp.rstrip()
     remote_timestamp = float(remote_timestamp)
@@ -167,9 +175,9 @@ def samples_changed(args,cache_file):
         return True
     return False
 
-@retry((urllib2.HTTPError,urllib2.URLError), tries=17, delay=2, backoff=2)
-def urlopen(query_string):
-    return urllib2.urlopen(query_string)
+@retry((HTTPError,URLError), tries=17, delay=2, backoff=2)
+def my_urlopen(query_string):
+    return urlopen(query_string)
 
 def download_sample_metadata(args, split=False):
     '''Dump from Snaptron WSI the full sample metadata for a specific data compilation (source)
@@ -184,7 +192,7 @@ def download_sample_metadata(args, split=False):
             with gzip.open(cache_file,"r") as gfin:
                 for (i,line) in enumerate(gfin):
                     line = line.rstrip()
-                    fields = line.split('\t')
+                    fields = line.split(b'\t')
                     sample_records[fields[0]]=line
                     sample_records_split[fields[0]]=fields
                     if i == 0:
@@ -195,7 +203,7 @@ def download_sample_metadata(args, split=False):
             return (sample_records, sample_records_split)
         else:
             gfout = gzip.open(cache_file+".tmp","w")
-    response = urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
+    response = my_urlopen("%s/%s/samples?all=1" % (clsnapconf.SERVICE_URL,args.datasrc))
     all_records = response.read()
     all_records = all_records.split('\n')
     for (i,line) in enumerate(all_records):

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # Copyright 2016, Christopher Wilks <broadsword@gmail.com>
 #
@@ -20,13 +20,13 @@
 
 import sys
 import os
-import urllib
-import urllib2
 import argparse
 import gzip
 import csv
 import re
 from operator import itemgetter
+from builtins import range
+from future.utils import viewitems
 
 import clsnapconf
 import clsnaputil
@@ -127,7 +127,7 @@ def process_combined_datasource_bulk_queries_multi(queries, datasrcs, endpoint, 
                     if merged:
                         final_record = '\t'.join(merged)
                 records[key] = final_record
-            except StopIteration, si:
+            except StopIteration as si:
                 its_done += 1
                 iTs[i] = None
     #now read out all the junction rows sorted on (group, chromosome, start, end)
@@ -145,7 +145,7 @@ def process_bulk_queries(args):
             outfile = open(args.bulk_query_file + ".snap_results.tsv", "wb")
     #TODO: make gzip optional for output file
     datasrcs = args.datasrc.split(',')
-    for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
+    for i in range(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
         if len(datasrcs) > 1:
             process_combined_datasource_bulk_queries_multi(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasrcs, endpoint, outfile, groups)
         else:
@@ -251,7 +251,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
             for record in sIT:
                 #ignore limits and group label on this output
                 sys.stdout.write(record + "\n")
-    for (group,group_fh) in group_fhs.iteritems():
+    for (group,group_fh) in viewitems(group_fhs):
         group_fh.close()
     return results
     
@@ -281,7 +281,7 @@ def main(args):
 
 def create_parser(disable_header=False):
     parser = argparse.ArgumentParser(description='Snaptron command line client')
-    for (field,settings) in clsnapconf.FIELD_ARGS.iteritems():
+    for (field,settings) in viewitems(clsnapconf.FIELD_ARGS):
         parser.add_argument("--%s" % field, metavar=settings[0], type=settings[1], default=settings[2], help=settings[3])
 
     parser.add_argument('--query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more filters and/or metadata contraints specified and/or contained/either/within flag(s) turned on')

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # Copyright 2017, Christopher Wilks <broadsword@gmail.com>
 #
@@ -19,9 +19,19 @@
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
 import sys
-import urllib
-import urllib2
-import httplib
+try:
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
+    from urllib.error import URLError
+    from http.client import IncompleteRead
+    from urllib.parse import urlencode
+except ImportError:
+    from urllib import urlencode
+    from urllib2 import urlopen
+    from urllib2 import HTTPError
+    from urllib2 import URLError
+    from httplib import IncompleteRead
+from builtins import bytes
 import base64
 import time
 from SnaptronIterator import SnaptronIterator
@@ -41,20 +51,20 @@ class SnaptronIteratorBulk(SnaptronIterator):
 
     def construct_query_string(self):
         super_string = clsnapconf.BULK_QUERY_DELIMITER.join(self.query_param_string)
-        self.data_string = urllib.urlencode({"groups":base64.b64encode(super_string)})
+        self.data_string = urlencode({"groups":base64.b64encode(bytes(super_string, 'utf-8'))})
         self.query_string = "%s/%s/%s" % (self.SERVICE_URL,self.instance,clsnapconf.HTTP_ENDPOINTS[self.endpoint])
         return (self.query_string, self.data_string)
     
-    @clsnaputil.retry((urllib2.HTTPError,urllib2.URLError), tries=17, delay=2, backoff=2)
-    def urlopen(self):
-       return urllib2.urlopen(url=self.query_string, data=self.data_string)
+    @clsnaputil.retry((HTTPError,URLError), tries=17, delay=2, backoff=2)
+    def my_urlopen(self):
+       return urlopen(url=self.query_string, data=bytes(self.data_string, 'utf-8'))
 
     def execute_query_string(self):
         sys.stderr.write("%s\n" % (self.query_string))
-        self.response = self.urlopen()
+        self.response = self.my_urlopen()
         if self.processor is not None or self.outfile_handle is not None:
             buf_ = self.response.read(self.buffer_size)
-            while(buf_ != None and buf_ != ''):
+            while(buf_ != None and buf_ != b''):
                 if self.processor:
                     buf_ += self.response.readline()
                     [self.processor.process(line) for line in buf_.split('\n')]
@@ -67,6 +77,6 @@ class SnaptronIteratorBulk(SnaptronIterator):
         #extend parent version to catch HTTP specific error
         try:
             return SnaptronIterator.fill_buffer(self)
-        except httplib.IncompleteRead, ir:
+        except (IncompleteRead) as ir:
             sys.stderr.write(ir.partial)
             raise ir

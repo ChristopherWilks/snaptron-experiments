@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # Copyright 2016, Christopher Wilks <broadsword@gmail.com>
 #
@@ -19,8 +19,16 @@
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
 import sys
-import urllib2
-import httplib
+try:
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
+    from urllib.error import URLError
+    from http.client import IncompleteRead
+except ImportError:
+    from urllib2 import urlopen
+    from urllib2 import HTTPError
+    from urllib2 import URLError
+    from httplib import IncompleteRead
 from SnaptronIterator import SnaptronIterator
 import clsnapconf
 import clsnaputil
@@ -41,20 +49,20 @@ class SnaptronIteratorHTTP(SnaptronIterator):
         self.query_string = "%s/%s/%s?%s" % (self.SERVICE_URL,self.instance,self.endpoint,self.query_param_string)
         return self.query_string
     
-    @clsnaputil.retry((urllib2.HTTPError,urllib2.URLError), tries=17, delay=2, backoff=2)
-    def urlopen(self):
-       return urllib2.urlopen(self.query_string)
+    @clsnaputil.retry((HTTPError,URLError), tries=17, delay=2, backoff=2)
+    def my_urlopen(self):
+       return urlopen(self.query_string)
 
     def execute_query_string(self):
         sys.stderr.write("%s\n" % (self.query_string))
-        self.response = self.urlopen()
+        self.response = self.my_urlopen()
         return self.response
 
     def fill_buffer(self):
         #extend parent version to catch HTTP specific error
         try:
             return SnaptronIterator.fill_buffer(self)
-        except httplib.IncompleteRead, ir:
+        except IncompleteRead as ir:
             sys.stderr.write(ir.partial)
             raise ir
 

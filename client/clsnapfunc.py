@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # Copyright 2016, Christopher Wilks <broadsword@gmail.com>
 #
@@ -194,7 +194,7 @@ def track_exons(args, results, record, group, out_fh=None):
         return
     fields = record.split('\t')
     snid = fields[clsnapconf.INTRON_ID_COL]
-    for (type_,col) in {'start':clsnapconf.INTERVAL_START_COL,'end':clsnapconf.INTERVAL_END_COL}.iteritems():
+    for (type_,col) in viewitems({'start':clsnapconf.INTERVAL_START_COL,'end':clsnapconf.INTERVAL_END_COL}):
         coord = int(fields[col])
         if coord not in exons:
             exons[coord]={type_:set()}
@@ -319,7 +319,7 @@ def report_shared_sample_counts(args, results, group_list, sample_records):
                 annot_count_across_iters+=1
         if annot_count_across_iters == results['groups_seen'][group]:
             total_fully_annotated_count+=1
-            annot_sources = ";".join([x+":"+str(y[0])+","+str(y[1]) for (x,y) in results['annotations'][group].iteritems()])
+            annot_sources = ";".join([x+":"+str(y[0])+","+str(y[1]) for (x,y) in viewitems(results['annotations'][group])])
             outputstr = "%s\t%d\t%s\n" % (group, annot_count_across_iters, annot_sources)
             output.append(outputstr)
             annots_fh.write(outputstr)

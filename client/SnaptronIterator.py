@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # Copyright 2016, Christopher Wilks <broadsword@gmail.com>
 #
@@ -18,9 +18,6 @@
 # along with Snaptron.  If not, see 
 # <https://creativecommons.org/licenses/by-nc/4.0/legalcode>.
 
-import sys
-import urllib2
-import httplib
 import clsnapconf
 
 class SnaptronIterator():
@@ -56,17 +53,17 @@ class SnaptronIterator():
 
     def fill_buffer(self):
         buf_ = self.response.read(self.buffer_size)
-        if buf_ is None or buf_ == '':
+        if buf_ is None or buf_ == b'':
             return 0
         bufs = [buf_]
         last_char = buf_[-1]
         #top up to next newline
-        while(last_char != None and last_char != '\n'):
+        while(last_char != None and last_char != b'\n'):
             last_char = self.response.read(1)
             bufs.append(last_char)
-        buf_ = "".join(bufs)
+        buf_ = b''.join(bufs)
         #get rid of last newline so we dont get an emtpy string as a last array element
-        if buf_[-1] == '\n':
+        if buf_[-1] == b'\n':
             buf_ = buf_[:-1]
-        self.lines = buf_.split("\n")
+        self.lines = buf_.split(b'\n')
         return len(self.lines)

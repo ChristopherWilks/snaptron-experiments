@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # Copyright 2016, Christopher Wilks <broadsword@gmail.com>
 #
@@ -22,6 +22,7 @@ import sys
 import os
 import argparse
 import gzip
+from builtins import range
 
 import query_snaptron
 import clsnapconf
@@ -174,7 +175,7 @@ def main(args):
         else:
             outfile = sys.stdout
 
-    for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
+    for i in range(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
         sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile, processor=processor)
 
     if processor is not None:
