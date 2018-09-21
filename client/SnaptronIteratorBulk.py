@@ -31,7 +31,6 @@ except ImportError:
     from urllib2 import HTTPError
     from urllib2 import URLError
     from httplib import IncompleteRead
-from builtins import bytes
 import base64
 import time
 from SnaptronIterator import SnaptronIterator
@@ -41,8 +40,8 @@ import clsnaputil
 
 class SnaptronIteratorBulk(SnaptronIterator):
 
-    def __init__(self,query_param_string,instance,endpoint,outfile_handle,processor=None):
-        SnaptronIterator.__init__(self,query_param_string,instance,endpoint,processor=processor) 
+    def __init__(self,query_param_string_list,instance,endpoint,outfile_handle,processor=None):
+        SnaptronIterator.__init__(self,query_param_string_list,instance,endpoint,processor=processor) 
 
         self.outfile_handle = outfile_handle
         self.SERVICE_URL=clsnapconf.SERVICE_URL
@@ -80,3 +79,6 @@ class SnaptronIteratorBulk(SnaptronIterator):
         except (IncompleteRead) as ir:
             sys.stderr.write(ir.partial)
             raise ir
+
+if __name__ == '__main__':
+    SnaptronIteratorBulk(['group=KCNIP4&regions=chr4:20763023-20763023&either=2&rfilter=coverage_sum>:1&rfilter=strand:-','group=GLRB_1&regions=chr4:157146419-157146419&either=2&rfilter=coverage_sum>:1&rfilter=strand:+&header=0'], 'srav2', 'snaptron', sys.stdout)
