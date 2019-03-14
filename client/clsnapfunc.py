@@ -70,14 +70,25 @@ def percent_spliced_in(args, results, group_list, sample_records):
     #only expect 3 groups for PSI, and order of A1,A2,B
     #where A1 and A2 are inclusion groups, B is exclusion
     sample_scores = {}
+    majority_psi_sample_count = 0
+    exclusion_sample_count = 0
     for sample in sample_stats:
         for group in group_list:
             if group not in sample_stats[sample]:
                 sample_stats[sample][group]=0
         sample_scores[sample] = calc_psi(args, sample_stats[sample], group_list)
+        if args.summarize:
+            (psi,total,inclusion1,inclusion2,exclusion) = sample_scores[sample]
+            if psi > 0.5:
+                majority_psi_sample_count+=1
+            if exclusion > 0:
+                exclusion_sample_count+=1
     missing_sample_ids = set()
     counter = 0
     output = []
+    outstr = '%s: # samples with > 0.5 PSI: %d, #samples with an exclusion jx %d, ratio: %s\n' % (args.datasrc,majority_psi_sample_count, exclusion_sample_count, majority_psi_sample_count/float(exclusion_sample_count))
+    output.append(outstr)
+    sys.stderr.write(outstr)
     if not args.noheader:
         rawstr = ""
         for group in group_list:

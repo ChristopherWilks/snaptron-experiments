@@ -299,6 +299,7 @@ def create_parser(disable_header=False):
     parser.add_argument('--min-count', metavar='count_as_int', type=int, default=clsnapconf.MIN_COUNT, help='minimum # of reads required in total (denominator) when calculating the PSI or splice mates (--function mates, --donor, or --acceptor), default is ' + str(clsnapconf.MIN_COUNT))
     
     parser.add_argument('--min-count-jir', metavar='count_as_int', type=int, default=1, help='minimum # of total reads required across both splice groups in each sample when calculating the JIR (--function jir), default is 1')
+    parser.add_argument('--summarize', action='store_const', const=True, default=False, help='report cross-sample statistics for certain functions in addition to their normal, per-sample output (e.g. PSI)')
 
     parser.add_argument('--limit', metavar='1', type=int, default=-1, help='# of records to return, defaults to all (-1)')
 
