@@ -30,6 +30,7 @@ from functools import wraps
 
 import clsnapconf
 
+GROUP_COV_FUNC='coverage'
 PSI_FUNC='psi'
 #splice event types
 #retained intron
@@ -90,6 +91,7 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
     query=[None]
     fields_seen = set()
     group = None
+    datasrc = None
     for field in fieldnames:
         if len(record[field]) > 0:
             fields_seen.add(field)
@@ -102,6 +104,9 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
                 #dont want to print the header multiple times for the same group
                 if group in groups_seen:
                     header = False
+                    #this is only for the simple 2 inclusions 1 exclusion case
+                    #all other PSI cases should have separate group names specified
+                    #by the user ahead of time and won't be covered here
                     if args.function == PSI_FUNC:
                         gidx = groups_seen[group]
                         groups[gidx] = "A1_" + group
@@ -114,6 +119,8 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
                 #switch the argument to use the fields approach, since all sample
                 #constraints are ignored/will error for base level queries
                 query.append("%s=%s" % ('fields',record[field]))
+            elif field == 'datasrc':
+                datasrc = record[field]
             else:
                 mapped_field = field
                 if field in fmap:
@@ -129,7 +136,7 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
         query[0] = "group=%s" % (group)
     else:
         query = query[1:]
-    return (query,endpoint)
+    return (query,endpoint,datasrc)
 
 
 def parse_command_line_args(args):
@@ -141,8 +148,10 @@ def parse_command_line_args(args):
         if field in vars(args) and vars(args)[field] is not None:
             fieldnames.append(field)
     groups = []
-    (query,endpoint) = parse_query_argument(args, vars(args), fieldnames, groups, {}, header=args.function is not None or not args.noheader)
-    return (["&".join(query)], groups, endpoint)
+    (query,endpoint,datasrc) = parse_query_argument(args, vars(args), fieldnames, groups, {}, header=args.function is not None or not args.noheader)
+    if datasrc is None:
+        datasrc = args.datasrc
+    return (["&".join(query)], groups, endpoint, [datasrc])
 
 def breakup_junction_id_query(jids):
     ln = len(jids)

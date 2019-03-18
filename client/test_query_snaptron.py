@@ -61,7 +61,7 @@ class TestSampleCountingPerGroup(unittest.TestCase):
 
 
     def test_JIR_count_samples_per_group(self):
-        args = Namespace(function='jir')
+        args = Namespace(function='jir',summarize=False)
         results = {'samples':{},'queries':[],'exons':{'start':{},'end':{}},'either':0}
 
         for (idx,group) in enumerate(list(['A_NormalTSS','B_AltTSS'])):
@@ -100,7 +100,7 @@ class TestJIR(unittest.TestCase):
 
     #using TCGA as the datasrc
     def test_junction_inclusion_ratio(self):
-        args = Namespace(function='jir',noheader=False,limit=-1,datasrc='tcga',min_count_jir=1)
+        args = Namespace(function='jir',noheader=False,limit=-1,datasrc='tcga',min_count_jir=1,summarize=False)
         groups = ['A_NormalTSS', 'B_AltTSS'] 
         group_list = set()
         map(lambda x: group_list.add(x), groups)

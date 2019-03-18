@@ -46,6 +46,57 @@ def intersect_junctions(args, results, record, group, out_fh=None):
     snid = fields[clsnapconf.INTRON_ID_COL]
     return
 
+
+def extract_group_coverage(args, sample_stat, group_list):
+    '''Extracts the raw coverage between N junctions and adds a total sum'''
+   
+    covs = [0]+[sample_stat[g] for g in group_list]
+    total = reduce(lambda x, y: x+y, covs)
+    if total < args.min_count:
+        total = -total
+    covs[0] = total
+    return covs
+
+def group_coverage(args, results, group_list, sample_records):
+    '''Outputs raw coverage sums for total and for each input jx group, per sample
+        plus all sample metadata, one sample per line'''
+
+    #we allow for N groups, BUT the user has
+    #to specify unique group names for each individual junction
+    #ahead of time e.g. L1_INCLUSION L2_INCLUSION L1_EXCLUSION, etc...
+    sample_stats = results['samples']
+    sample_scores = {}
+    for sample in sample_stats:
+        for group in group_list:
+            if group not in sample_stats[sample]:
+                sample_stats[sample][group]=0
+        sample_scores[sample] = extract_group_coverage(args, sample_stats[sample], group_list)
+    missing_sample_ids = set()
+    counter = 0
+    output = []
+    if not args.noheader:
+        rawstr = ""
+        for group in group_list:
+            rawstr += "%s raw count\t" % group
+        sheader = sample_records["header"]
+        outstr = "total_count\t%s%s\n" % (rawstr,sheader)
+        output.append(outstr)
+        sys.stdout.write(outstr)
+    for sample in sorted(sample_scores.keys(),key=lambda x: sample_scores[x][0],reverse=True):
+        counter += 1
+        if args.limit > -1 and counter > args.limit:
+            break
+        scores = sample_scores[sample]
+        if sample not in sample_records:
+            missing_sample_ids.add(sample)
+            continue
+        rawstr = "\t".join([str(x) for x in sample_scores[sample]])
+        sample_record = sample_records[sample]
+        outstr = "%s\t%s\n" % (rawstr,sample_record)
+        output.append(outstr)
+        sys.stdout.write(outstr)
+    return output
+
 def calc_psi(args, sample_stat, group_list):
     '''Calculates the simple PSI between 2 junction 
     variants where one variant has 2 junctions (inclusion),
@@ -53,7 +104,8 @@ def calc_psi(args, sample_stat, group_list):
 
     ss = sample_stat
     gl = group_list
-    (inclusion1,inclusion2,exclusion) = (sample_stat[group_list[0]],sample_stat[group_list[1]],sample_stat[group_list[2]])
+    #TODO blatant hardcoding of group indexes here, need to allow for less rigidity (more groups)
+    (inclusion1,inclusion2,exclusion) = (sample_stat[gl[0]],sample_stat[gl[1]],sample_stat[gl[2]])
     mean_inclusion = (inclusion1 + inclusion2) / 2.0
     total = mean_inclusion + exclusion
     psi = mean_inclusion / float(total)
@@ -86,9 +138,9 @@ def percent_spliced_in(args, results, group_list, sample_records):
     missing_sample_ids = set()
     counter = 0
     output = []
-    outstr = '%s: # samples with > 0.5 PSI: %d, #samples with an exclusion jx %d, ratio: %s\n' % (args.datasrc,majority_psi_sample_count, exclusion_sample_count, majority_psi_sample_count/float(exclusion_sample_count))
-    output.append(outstr)
-    sys.stderr.write(outstr)
+    if args.summarize:
+        outstr = '%s: # samples with > 0.5 PSI: %d, #samples with an exclusion jx %d, ratio: %s\n' % (args.datasrc,majority_psi_sample_count, exclusion_sample_count, majority_psi_sample_count/float(exclusion_sample_count))
+        sys.stderr.write(outstr)
     if not args.noheader:
         rawstr = ""
         for group in group_list:
@@ -138,6 +190,9 @@ def junction_inclusion_ratio(args, results, group_list, sample_records, print_ou
     group_a = group_list[0]
     group_b = group_list[1]
     sample_scores = {}
+    A_majority_jir_sample_count = 0
+    B_majority_jir_sample_count = 0
+    neither_sample_count = 0
     for sample in sample_stats:
         if group_a not in sample_stats[sample]:
             sample_stats[sample][group_a]=0
@@ -148,6 +203,17 @@ def junction_inclusion_ratio(args, results, group_list, sample_records, print_ou
             sample_scores[sample] = -100
         else:
             sample_scores[sample] = calc_jir(sample_stats[sample][group_a], sample_stats[sample][group_b])
+        if args.summarize:
+            if sample_scores[sample] > 0:
+                B_majority_jir_sample_count+=1
+            elif sample_scores[sample] < 0:
+                A_majority_jir_sample_count+=1
+            else:
+                neither_sample_count+=1
+    if args.summarize:
+        total_sample_count = A_majority_jir_sample_count + B_majority_jir_sample_count + neither_sample_count
+        outstr = '%s: # samples > 0 JIR: %d, # samples < 0 jir: %d, # samples == 0: %d, ratios: >0/total: %s, <0/total: %s\n' % (args.datasrc, B_majority_jir_sample_count, A_majority_jir_sample_count, neither_sample_count, B_majority_jir_sample_count/float(total_sample_count), A_majority_jir_sample_count/float(total_sample_count))
+        sys.stderr.write(outstr)
     missing_sample_ids = set()
     counter = 0
     output = []
@@ -365,9 +431,13 @@ def report_splice_mates(args, results, group_list, sample_records):
     start = int(m.group(2))
     end = int(m.group(3))
     args.region = '%s:%s-%s' % (chrom,str(start),str(end))
-    (query_param_strings, groups, endpoint) = clsnaputil.parse_command_line_args(args)
+    (query_param_strings, groups, endpoint, datasrcs) = clsnaputil.parse_command_line_args(args)
     use_local = False
     #assume one query
+    #for now, only support a single datasrc via this interface
+    if len(datasrcs) != 1:
+        sys.stderr.write("# of datasrc/compilations != 1: %s, this function only supports one datasrc/compilation, quiting\n" % (','.join(datasrcs)))
+        sys.exit(-1)
     sIT = results['siterator'](query_param_strings[0], args.datasrc, clsnapconf.BASES_ENDPOINT)
     #expecting only 2 rows for this point query, the header and the base itself
     sample_ids = sIT.next().split('\t')[clsnapconf.INTERVAL_END_COL:]

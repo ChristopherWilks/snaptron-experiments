@@ -1,0 +1,3 @@
+region	either	filters	group
+chr8:117146818-117146818	2	samples_count>=2&strand=+	L1_INCLUSION
+chr8:117146849-117146849	1	samples_count>=2&strand=+	L2_INCLUSION

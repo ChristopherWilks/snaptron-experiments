@@ -37,7 +37,7 @@ from SnaptronIteratorBulk import SnaptronIteratorBulk
 
 csv.field_size_limit(sys.maxsize)
 
-compute_functions={snf.MATES_FUNC:(snf.sum_sample_coverage,snf.report_splice_mates),clsnaputil.PSI_FUNC:(snf.count_samples_per_group,snf.percent_spliced_in),snf.JIR_FUNC:(snf.count_samples_per_group,snf.junction_inclusion_ratio),snf.TRACK_EXONS_FUNC:(snf.track_exons,snf.filter_exons),snf.TISSUE_SPECIFICITY_FUNC:(snf.count_samples_per_group,snf.tissue_specificity),snf.SHARED_SAMPLE_COUNT_FUNC:(snf.count_samples_per_group,snf.report_shared_sample_counts),snf.INTERSECTION_FUNC:(None,None),None:(None,None)}
+compute_functions={snf.MATES_FUNC:(snf.sum_sample_coverage,snf.report_splice_mates),clsnaputil.PSI_FUNC:(snf.count_samples_per_group,snf.percent_spliced_in),snf.JIR_FUNC:(snf.count_samples_per_group,snf.junction_inclusion_ratio),snf.TRACK_EXONS_FUNC:(snf.track_exons,snf.filter_exons),snf.TISSUE_SPECIFICITY_FUNC:(snf.count_samples_per_group,snf.tissue_specificity),snf.SHARED_SAMPLE_COUNT_FUNC:(snf.count_samples_per_group,snf.report_shared_sample_counts),snf.INTERSECTION_FUNC:(None,None),clsnaputil.GROUP_COV_FUNC:(snf.count_samples_per_group,snf.group_coverage),None:(None,None)}
 
 
 def parse_query_params(args):
@@ -50,6 +50,7 @@ def parse_query_params(args):
     queries = []
     groups = []
     groups_seen = {}
+    datasrcs = []
     infile = args.query_file
     bulk = False
     if args.bulk_query_file is not None:
@@ -59,12 +60,16 @@ def parse_query_params(args):
         creader = csv.DictReader(cfin,dialect=csv.excel_tab)
         get_header = args.function is not None or not args.noheader
         for (i,record) in enumerate(creader):
-            (query, endpoint) = clsnaputil.parse_query_argument(args, record, creader.fieldnames, groups, groups_seen, inline_group=bulk, header=get_header)
+            (query, endpoint, datasrc) = clsnaputil.parse_query_argument(args, record, creader.fieldnames, groups, groups_seen, inline_group=bulk, header=get_header)
+            if datasrc is not None:
+                datasrcs.append(datasrc)
             queries.append("&".join(query))
             if args.function is None:
                 get_header = False
+    if len(datasrcs) == 0:
+        datasrcs.append(args.datasrc)
     #assume the endpoint will be the same for all lines in the file
-    return (queries,groups,endpoint)
+    return (queries,groups,endpoint,datasrcs)
 
 
 def merge(record1, record2):
@@ -99,13 +104,18 @@ def merge(record1, record2):
     return None
 
 def process_combined_datasource_bulk_queries_multi(queries, datasrcs, endpoint, outfile, groups):
+    '''Merge or Intersect junction records from multiple compilations'''
     records = {}
     iTs = []
+    datasrc_jxs = []
     for (i,datasrc) in enumerate(datasrcs):
         iTs.append(SnaptronIteratorBulk(queries, datasrcs[i], endpoint, None))
+        datasrc_jxs.append(set())
     its_done = 0
     num_its = len(iTs)
     header = True
+    first_datasrc = True
+    intersected_jxs = set()
     while its_done < num_its:
         for (i, sIT) in enumerate(iTs):
             if sIT is None:
@@ -120,31 +130,43 @@ def process_combined_datasource_bulk_queries_multi(queries, datasrcs, endpoint, 
                         header = False
                     continue
                 key = (group1, c1, int(s1), int(e1))
+                datasrc_jxs[i].add(key)
                 final_record = record
                 if key in records:
                     r2 = records[key].split('\t')
                     merged = merge(r2, r1)
-                    if merged:
+                    if merged is not None:
                         final_record = '\t'.join(merged)
+                    records[key] = final_record
+                    continue
                 records[key] = final_record
             except StopIteration, si:
                 its_done += 1
                 iTs[i] = None
+    if args.function == snf.INTERSECTION_FUNC:
+        intersected_jxs = datasrc_jxs[0].intersection(*datasrc_jxs)
     #now read out all the junction rows sorted on (group, chromosome, start, end)
-    for key in sorted(records.keys(), key=itemgetter(0,1,2,3)):
+    keys = intersected_jxs
+    if args.function != snf.INTERSECTION_FUNC:
+        keys = records.keys()
+    for key in sorted(keys, key=itemgetter(0,1,2,3)):
         outfile.write(records[key]+"\n")
 
 
 def process_bulk_queries(args):
-    (query_params_per_group, groups, endpoint) = parse_query_params(args)
+    (query_params_per_group, groups, endpoint, datasrcs) = parse_query_params(args)
     outfile = sys.stdout
     if not args.bulk_query_stdout:
         if args.bulk_query_gzip:
             outfile = gzip.open(args.bulk_query_file + ".snap_results.tsv.gz", "wb")
         else:
             outfile = open(args.bulk_query_file + ".snap_results.tsv", "wb")
-    #TODO: make gzip optional for output file
+    #we ONLY support a list of datasrcs passed in at the args level
+    #i.e. ignoring an per-query datasrc passed via a query file
+    if len(datasrcs) != 1:
+        sys.stderr.write("additional datasources supplied via query file, ignoring and only using these: %s\n" % (args.datasrc))
     datasrcs = args.datasrc.split(',')
+    #TODO: make gzip optional for output file
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
         if len(datasrcs) > 1:
             process_combined_datasource_bulk_queries_multi(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], datasrcs, endpoint, outfile, groups)
@@ -177,7 +199,7 @@ def process_group(args, group_idx, groups, group_fhs, results):
 
 iterator_map = {True:SnaptronIteratorLocal, False:SnaptronIteratorHTTP}
 either_patt = re.compile(r'either=(\d)')
-def process_queries(args, query_params_per_region, groups, endpoint, count_function=None, local=False):
+def process_queries(args, query_params_per_region, groups, endpoint, datasrcs, count_function=None, local=False):
     '''General function to process the high level queries (functions) via
     one or more basic queries while tracking the results across basic queries'''
 
@@ -192,12 +214,20 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
         results['jids']=set()
     first = True
     group_fhs = {}
+    #used for intersection
+    intersection_datasrc = 'srav2'
     for (group_idx, query_param_string) in enumerate(query_params_per_region):
+        datasrc = datasrcs[0]
+        if len(datasrcs) > 1:
+            datasrc = datasrcs[group_idx]
         jids = set()
         m = either_patt.search(query_param_string)
         if m is not None:
             results['either'] = int(m.group(1))
-        sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
+        sIT = iterator_map[local](query_param_string, datasrc, endpoint)
+        #since this will be used for intersection, doesn't matter which datasrc
+        #we save as long as it's one of the ones passed in
+        intersection_datasrc = datasrc
         results['siterator'] = iterator_map[local]
         #assume we get a header in this case and don't count it against the args.limit
         (group, group_fh) = process_group(args, group_idx, groups, group_fhs, results)
@@ -247,7 +277,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
     if 'jids' in results and len(results['jids']) > 0:
         query_param_strings = clsnaputil.breakup_junction_id_query(results['jids'])
         for query_param_string in query_param_strings:
-            sIT = iterator_map[local](query_param_string, args.datasrc, endpoint)
+            sIT = iterator_map[local](query_param_string, datasrc, endpoint)
             for record in sIT:
                 #ignore limits and group label on this output
                 sys.stdout.write(record + "\n")
@@ -258,7 +288,7 @@ def process_queries(args, query_params_per_region, groups, endpoint, count_funct
 
 def main(args):
     sample_records = {}
-    if (args.function is not None and args.function != snf.TRACK_EXONS_FUNC) or args.normalize is not None:
+    if (args.function is not None and args.function != snf.TRACK_EXONS_FUNC and args.bulk_query_file is None) or args.normalize is not None:
         (sample_records, sample_records_split) = clsnaputil.download_sample_metadata(args,split=args.normalize is not None)
         args.sample_records_split = sample_records_split
     #special handling for bulk, should attempt to refactor this in the future to
@@ -267,11 +297,11 @@ def main(args):
         process_bulk_queries(args)
         return
     #parse original set of queries
-    (query_params_per_region, groups, endpoint) = parse_query_params(args)
+    (query_params_per_region, groups, endpoint, datasrcs) = parse_query_params(args)
     #get original functions (if passed in)
     (count_function, summary_function) = compute_functions[args.function]
     #process original queries
-    results = process_queries(args, query_params_per_region, groups, endpoint, count_function=count_function, local=args.local)
+    results = process_queries(args, query_params_per_region, groups, endpoint, datasrcs, count_function=count_function, local=args.local)
     #if either the user wanted the JIR to start with on some coordinate groups, do the JIR now
     if args.function is not None and summary_function is not None:
         group_list = set()
@@ -296,9 +326,10 @@ def create_parser(disable_header=False):
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
     
-    parser.add_argument('--min-count', metavar='count_as_int', type=int, default=clsnapconf.MIN_COUNT, help='minimum # of reads required in total (denominator) when calculating the PSI or splice mates (--function mates, --donor, or --acceptor), default is ' + str(clsnapconf.MIN_COUNT))
+    parser.add_argument('--min-count', metavar='count_as_int', type=int, default=clsnapconf.MIN_COUNT, help='minimum # of reads required in total (denominator) when calculating the PSI, COVERAGE, or splice mates (--function mates, --donor, or --acceptor), default is ' + str(clsnapconf.MIN_COUNT))
     
     parser.add_argument('--min-count-jir', metavar='count_as_int', type=int, default=1, help='minimum # of total reads required across both splice groups in each sample when calculating the JIR (--function jir), default is 1')
+
     parser.add_argument('--summarize', action='store_const', const=True, default=False, help='report cross-sample statistics for certain functions in addition to their normal, per-sample output (e.g. PSI)')
 
     parser.add_argument('--limit', metavar='1', type=int, default=-1, help='# of records to return, defaults to all (-1)')

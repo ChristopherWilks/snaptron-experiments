@@ -143,7 +143,7 @@ class GeneExonIntervalProcessor(IntervalProcessor):
     
 def main(args):
 
-    (query_params_per_group, groups, endpoint) = query_snaptron.parse_query_params(args)
+    (query_params_per_group, groups, endpoint, datasrcs) = query_snaptron.parse_query_params(args)
     #server side processing requested, update queries accordingly
     if args.summary == 'server':
         #we don't want a header for a server side calculation
@@ -174,6 +174,10 @@ def main(args):
         else:
             outfile = sys.stdout
 
+    #for now, only support a single datasrc via this interface
+    if len(datasrcs) != 1:
+        sys.stderr.write("# of datasrc/compilations != 1: %s, this bulk interface only supports one datasrc/compilation, quiting\n" % (','.join(datasrcs)))
+        sys.exit(-1)
     for i in xrange(0, len(query_params_per_group), clsnapconf.BULK_LIMIT):
         sIT = SnaptronIteratorBulk(query_params_per_group[i:i+clsnapconf.BULK_LIMIT], args.datasrc, endpoint, outfile, processor=processor)
 
