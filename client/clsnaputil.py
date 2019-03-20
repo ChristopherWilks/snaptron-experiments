@@ -78,7 +78,7 @@ def retry(ExceptionsToCheck, tries=4, delay=3, backoff=2, logger=None):
 
     return deco_retry
 
-
+metadata_simple_patt=re.compile(r'^[^:=&]+$')
 fmap = {'filters':'rfilter','metadata':'sfilter','region':'regions','samples':'sids'}
 def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_group=False, header=True):
     '''Called from parse_command_line_args;
@@ -96,6 +96,10 @@ def parse_query_argument(args, record, fieldnames, groups, groups_seen, inline_g
         if len(record[field]) > 0:
             fields_seen.add(field)
             if field == 'filters' or field == 'metadata':
+                #in the simple query case where the user just puts the text they want
+                #without the field
+                if field == 'metadata' and metadata_simple_patt.search(record[field]) is not None:
+                    record[field]='all:%s' % (record[field])
                 predicates = re.sub("=",":",record[field])
                 predicates = predicates.split('&')
                 query.append("&".join(["%s=%s" % (fmap[field],x) for x in predicates]))
