@@ -36,6 +36,7 @@ JIR_FUNC='jir'
 TRACK_EXONS_FUNC='exon'
 INTERSECTION_FUNC='intersection'
 MATES_FUNC='mates'
+GROUP_COV_FUNC='coverage'
 
 
 def intersect_junctions(args, results, record, group, out_fh=None):
@@ -77,7 +78,7 @@ def group_coverage(args, results, group_list, sample_records):
     if not args.noheader:
         rawstr = ""
         for group in group_list:
-            rawstr += "%s raw count\t" % group
+            rawstr += "%s_count\t" % group
         sheader = sample_records["header"]
         outstr = "total_count\t%s%s\n" % (rawstr,sheader)
         output.append(outstr)
@@ -310,7 +311,7 @@ def filter_exons(args, results, group_list, sample_records):
     return output
 
 
-FUNCTION_TO_TYPE={MATES_FUNC:'not-shared', TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', clsnaputil.PSI_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared',INTERSECTION_FUNC:'track-queries'}
+FUNCTION_TO_TYPE={MATES_FUNC:'not-shared', TRACK_EXONS_FUNC:'not-shared', JIR_FUNC:'not-shared', clsnaputil.PSI_FUNC:'not-shared', None:None, TISSUE_SPECIFICITY_FUNC:'shared',SHARED_SAMPLE_COUNT_FUNC:'shared',INTERSECTION_FUNC:'track-queries',GROUP_COV_FUNC:'not-shared'}
 def count_samples_per_group(args, results, record, group, out_fh=None):
     '''Tracks shared status of samples which appear across basic queries (junctions)
     as well as annotation status of junctions; organized by junction group'''
