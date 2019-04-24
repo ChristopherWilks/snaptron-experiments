@@ -10,17 +10,22 @@ STRAND_FIELD = 7
 ANNOTATION_FIELD = 8
 #coverage_sum, per sample group per exon/jx
 TOTAL_COUNTS_FIELD = 15 
+SAMPLES_FIELD = 13
 
-groups_ = sys.argv[1]
 #hugo name of gene to match with exon & gene query results
 #e.g. CD99
-gene_to_find = sys.argv[2]
-
-groups = groups_.split(',')
-group_set = set(groups)
+gene_to_find = sys.argv[1]
+decoderF = open(gene_to_find+".decoder.txt","w")
+#decoderF.write("sample.ID\tgroup.ID\n")
+#get groups if passed in
 groups_fh = {}
-for (i,g) in enumerate(groups):
-    groups_fh[g] = [open(g+".counts.tsv","w"),i] 
+group_set = set()
+if len(sys.argv) > 2:
+    groups_ = sys.argv[2]
+    groups = groups_.split(',')
+    group_set = set(groups)
+    for (i,g) in enumerate(groups):
+        groups_fh[g] = [open(g+".counts.tsv","w"),i] 
 
 gene = ""
 idx = 0
@@ -77,10 +82,17 @@ for line in sys.stdin:
                 gene_set = "UNKNOWN_GENE_SET"
             sys.stdout.write("\t".join([chrm,"ScalaUtils",jx_type,start,end,".",strand,".","gene_id "+gene+"; tx_set "+tx_set+"; num 0"+idx_str+"; gene_set "+gene_set])+"\n")
     #now output counts
-    (fh,gidx) = groups_fh[group]
-    fh.write(gene+":"+ftype+"0"+idx_str+"\t"+fields[TOTAL_COUNTS_FIELD]+"\n")
-    #track which counts groups we're writing to for this jx/exon
-    map2group[key][0].add(group)
+    #(fh,gidx) = groups_fh[group]
+    for (sid,cov) in [f.split(':') for f in fields[SAMPLES_FIELD].split(',')[1:]]:
+        if sid not in groups_fh:
+            groups_fh[sid]=[open("samples/"+sid+".counts.tsv","w"),sid]
+        fh = groups_fh[sid][0]
+        fh.write(gene+":"+ftype+"0"+idx_str+"\t"+cov+"\n")
+        #track which counts groups we're writing to for this jx/exon
+        map2group[key][0].add(sid)
+        if sid not in group_set:
+            group_set.add(sid)
+            decoderF.write(sid+"\t"+group+"\n")
     map2type[key] = ftype
 
 #write 0's for the exons/jxs that didn't have a count for a particular sample group file
@@ -93,3 +105,4 @@ for key in map2group.keys():
 
 for (fh,i) in groups_fh.values():
     fh.close()
+decoderF.close()
