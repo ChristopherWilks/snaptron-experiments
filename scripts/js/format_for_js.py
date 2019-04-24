@@ -12,6 +12,10 @@ ANNOTATION_FIELD = 8
 TOTAL_COUNTS_FIELD = 15 
 
 groups_ = sys.argv[1]
+#hugo name of gene to match with exon & gene query results
+#e.g. CD99
+gene_to_find = sys.argv[2]
+
 groups = groups_.split(',')
 group_set = set(groups)
 groups_fh = {}
@@ -20,12 +24,6 @@ for (i,g) in enumerate(groups):
 
 gene = ""
 idx = 0
-gchrm = ""
-#gstart = sys.maxint
-#gend = -1
-gstart = "-1"
-gend = "-1"
-gstrand = "?"
 
 map2group = {}
 #track type status of a mapped element (exon/annotation jx/novel jx)
@@ -38,9 +36,10 @@ for line in sys.stdin:
     (chrm, start, end) = fields[CHRM_FIELD:END_FIELD+1]
     strand = fields[STRAND_FIELD]
     key = "\t".join([chrm,start,end,strand])
-    skip_gff = False
+    ftype = "A"
     if key in map2group:
         idx_str = map2group[key][1]
+        ftype = map2type[key]
     #output the coordinates to the GFF
     else:
         idx+=1
@@ -49,15 +48,22 @@ for line in sys.stdin:
             idx_str = "0"+idx_str
         map2group[key] = [set(),idx_str]
         #exon line
-        ftype = "E"
-        if fields[1][-1] == 'E':
-            if len(gene) == 0:
-                gene = fields[GENE_FIELD].split(':')[GENE_NAME_SUBFIELD]
-                gchrm = chrm
-                gstart = start
-                gstrand = strand
-            sys.stdout.write("\t".join([chrm,"ScalaUtils","exonic_part",start,end,".",strand,".","gene_id "+gene+"; tx_set tx1; num 0"+idx_str+"; gene_set "+gene])+"\n")
-            gend = end
+        ftype = fields[1][-1];
+        #gene or exon
+        if ftype == 'G' or ftype == 'E':
+            gene = fields[GENE_FIELD].split(':')[GENE_NAME_SUBFIELD]
+            if gene != gene_to_find:
+                del map2group[key]
+                continue
+            str_type = "exonic_part"
+            if ftype == 'G':
+                ftype = 'A'
+                str_type = "aggregate_gene"
+                #reset idx
+                idx -= 1
+                idx_str = "00"
+                map2group[key][1] = idx_str
+            sys.stdout.write("\t".join([chrm,"ScalaUtils",str_type,start,end,".",strand,".","gene_id "+gene+"; tx_set tx1; num 0"+idx_str+"; gene_set "+gene])+"\n")
         else:
             #junction line (novel or annotated)
             ftype = "J"
@@ -76,17 +82,14 @@ for line in sys.stdin:
     #track which counts groups we're writing to for this jx/exon
     map2group[key][0].add(group)
     map2type[key] = ftype
-#finall write out the whole gene line
-sys.stdout.write("\t".join([gchrm,"ScalaUtils","aggregate_gene",gstart,gend,".",gstrand,".","gene_id "+gene+"; tx_set tx1; num 000; gene_set "+gene])+"\n")
 
 #write 0's for the exons/jxs that didn't have a count for a particular sample group file
 for key in map2group.keys():
     (group_set_, idx_str) = map2group[key]
+    ftype = map2type[key]
     for g in (group_set - group_set_):
         (fh,i) = groups_fh[g]
         fh.write(gene+":"+ftype+"0"+idx_str+"\t0\n")
 
 for (fh,i) in groups_fh.values():
-    #TODO: write gene counts as 0 for now (change this to actually query the gene from snaptron)
-    fh.write(gene+":A000\t0\n")
     fh.close()

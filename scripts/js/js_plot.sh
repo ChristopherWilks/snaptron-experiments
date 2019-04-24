@@ -13,24 +13,22 @@ region=$2
 #e.g. "Pituitary,Brain,Spleen"
 #must be at least 2 groups
 groups=$3
+#gene gname to match exon/gene queries
+gname=$4
 #e.g. rfilter=coverage_sum>:1000&contains=1
-filters=$4
-#to use when labeling files
-name=$5
-
-if [[ -z $name ]]; then
-    name=$comp
-fi
+filters=$5
 
 if [[ -n $filters ]]; then
     filters="&${filters}"
 fi
 
-echo -n "" > ${name}.jxs
-echo -n "" > ${name}.exons
+echo -n "" > ${gname}.jxs
+echo -n "" > ${gname}.exons
+echo -n "" > ${gname}.genes
 for g in `cat <(echo $groups) | tr , " "`; do
-    curl "$SNAPTRON/${comp}/snaptron?regions=${region}${filters}&sfilter=SMTS:${g}&header=0" | perl -ne 'print "'$g'\t$_";' >> ${name}.jxs
-    curl "$SNAPTRON/${comp}/exons?regions=${region}&header=0" | perl -ne 'print "'$g'\t$_";' >> ${name}.exons
+    curl "$SNAPTRON/${comp}/snaptron?regions=${region}${filters}&sfilter=SMTS:${g}&header=0" | perl -ne 'print "'$g'\t$_";' >> ${gname}.jxs
+    curl "$SNAPTRON/${comp}/exons?regions=${region}&sfilter=SMTS:${g}&header=0" | perl -ne 'print "'$g'\t$_";' >> ${gname}.exons
+    curl "$SNAPTRON/${comp}/genes?regions=${region}&sfilter=SMTS:${g}&header=0" | perl -ne 'print "'$g'\t$_";' >> ${gname}.genes
 done
 
-cat ${name}.exons ${name}.jxs | python2 format_for_js.py $groups > ${name}.gff
+cat ${gname}.genes ${gname}.exons ${gname}.jxs | python2 format_for_js.py $groups $gname > ${gname}.gff
