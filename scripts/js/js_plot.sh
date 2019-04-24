@@ -31,6 +31,5 @@ for g in `cat <(echo $groups) | tr , " "`; do
     curl "$SNAPTRON/${comp}/genes?regions=${region}&sfilter=SMTS:${g}&header=0" | perl -ne 'print "'$g'\t$_";' >> ${gname}.genes
 done
 
-#cat ${gname}.genes ${gname}.exons ${gname}.jxs | python2 format_for_js.py $gname $groups > ${gname}.gff
-cat ${gname}.genes ${gname}.exons ${gname}.jxs | python2 format_for_js.py $gname > ${gname}.gff
+cat ${gname}.genes ${gname}.exons ${gname}.jxs | python2 format_for_js.py $gname 2 $groups > ${gname}.gff
 cat <(echo 'sample.ID	group.ID') <(sort IMPDH1.decoder.txt) > IMPDH1.decoder.txt.sorted
