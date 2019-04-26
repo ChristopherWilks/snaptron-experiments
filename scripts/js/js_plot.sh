@@ -13,7 +13,7 @@ region=$2
 #e.g. "Pituitary,Brain,Spleen"
 #must be at least 2 groups
 groups=$3
-#gene gname to match exon/gene queries
+#gene gname to match exon/gene queries, e.g. IMPDH1
 gname=$4
 #e.g. rfilter=coverage_sum>:1000&contains=1
 filters=$5
@@ -31,5 +31,4 @@ for g in `cat <(echo $groups) | tr , " "`; do
     curl "$SNAPTRON/${comp}/genes?regions=${region}&sfilter=SMTS:${g}&header=0" | perl -ne 'print "'$g'\t$_";' >> ${gname}.genes
 done
 
-cat ${gname}.genes ${gname}.exons ${gname}.jxs | python2 format_for_js.py $gname 2 $groups > ${gname}.gff
-cat <(echo 'sample.ID	group.ID') <(sort IMPDH1.decoder.txt) > IMPDH1.decoder.txt.sorted
+cat ${gname}.genes ${gname}.exons ${gname}.jxs | python2 format_for_js.py $groups $gname > ${gname}.gff
