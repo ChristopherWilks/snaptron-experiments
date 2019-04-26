@@ -1,0 +1,6 @@
+chr7	ScalaUtils	aggregate_gene	128392277	128410252	.	-	.	gene_id IMPDH1; tx_set tx1; num 000; gene_set IMPDH1
+chr7	ScalaUtils	exonic_part	128393722	128393738	.	-	.	gene_id IMPDH1; tx_set tx1; num 001; gene_set IMPDH1
+chr7	ScalaUtils	exonic_part	128394275	128394277	.	-	.	gene_id IMPDH1; tx_set tx1; num 002; gene_set IMPDH1
+chr7	ScalaUtils	splice_site	128393029	128393721	.	-	.	gene_id IMPDH1; tx_set tx1; num 003; gene_set IMPDH1
+chr7	ScalaUtils	splice_site	128393029	128394277	.	-	.	gene_id IMPDH1; tx_set tx1; num 004; gene_set IMPDH1
+chr7	ScalaUtils	splice_site	128393739	128394277	.	-	.	gene_id IMPDH1; tx_set tx1; num 005; gene_set IMPDH1
