@@ -1,0 +1,3 @@
+region	contains	filters	group
+chr2:29446395-30142858	1	strand=-	A_NormalTSS
+chr2:29416789-29446394	1	strand=-	B_AltTSS

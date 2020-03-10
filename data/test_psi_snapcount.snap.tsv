@@ -1,0 +1,4 @@
+region	exact	filters	group
+chr19:45297955-45298142	1	strand=+	INCLUSION
+chr19:45298223-45299810	1	strand=+	INCLUSION
+chr19:45297955-45299810	1	strand=+	EXCLUSION
