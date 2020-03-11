@@ -26,3 +26,7 @@ diff tests/gtex.test.exons.coverage.expected tests/gtex.test.gene.exon.coverage.
 #donor/acceptor demonstration for doing splices mates score (mouse gene AGRN)
 python client/query_snaptron.py --datasrc supermouse --region "chr4:156177442-156177442" --acceptor - --min-count 1 | cut -f 1,2,3,4,5-12,190
 python client/query_snaptron.py --datasrc gtex,tcga --bulk-query-file data/alk_alt_tss.hg38.snap.tsv --bulk-query-stdout | cut -f1-10 | grep ":" | cut -f 1,3-5,7 | sort -u > both.all.shared.coords.test
+
+#APSI GTEx query
+python client/query_snaptron.py --query-file data/gtex.apsi.8.snapin.tsv --function apsi --datasrc gtex --sample-group-file data/gtex.samples.groups.tsv > gtex.apsi.8.snapin.tsv.output
+diff tests/test.gtexv1.apsi.8.tsv gtex.apsi.8.snapin.tsv.output

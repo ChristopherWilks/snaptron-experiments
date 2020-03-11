@@ -39,10 +39,12 @@ MATES_FUNC='mates'
 GROUP_COV_FUNC='coverage'
 
 apsi_region_patt = re.compile(r'^(chr[^:]+):(\d+)-(\d+)$')
-def process_apsi(args, query_params_per_region, groups, endpoint, datasrcs, iterator_map, local=False):
+def process_apsi(args, query_params_per_region, query_labels, endpoint, datasrcs, iterator_map, local=False):
+    #first, don't support more than one datasrc
+    if len(datasrcs) > 1:
+        sys.stderr.write("APSI only supports queries on a single datasource at a time, quitting\n")
+        sys.exit(-1)
     #each query params entry is really a list of query params, where the first
-    #regions = []
-    #params = []
     rids2groups = {}
     with open(args.sample_group_file,"r") as fin:
         for line in fin:
@@ -51,8 +53,9 @@ def process_apsi(args, query_params_per_region, groups, endpoint, datasrcs, iter
             rids = fields[3].split(',')
             rids2groups.update({rid:group for rid in rids})
     groups_sorted = sorted(set(rids2groups.values()))
-    sys.stdout.write("query\t%s\n" % ('\t'.join(groups_sorted)))
-    for query_params in query_params_per_region:
+    sys.stdout.write("query_label\tquery\t%s\n" % ('\t'.join(groups_sorted)))
+    for (qi,query_params) in enumerate(query_params_per_region):
+        query_label = query_labels[qi]
         for q in query_params:
             (k,v) = q.split('=')
             params_ = []
@@ -120,7 +123,7 @@ def process_apsi(args, query_params_per_region, groups, endpoint, datasrcs, iter
             if len(psis[0]) == 0 or len(psis[1]) == 0:
                 sys.stderr.write("Bad APSI query row: %s, skipping\n" % (q))
                 continue
-            sys.stdout.write("%s" % (q))
+            sys.stdout.write("%s\t%s" % (query_label,q))
             for g in groups_sorted:
                 #upstream psi
                 psi1 = 0.0

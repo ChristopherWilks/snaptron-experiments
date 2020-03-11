@@ -1,0 +1,9 @@
+query_label	query	Adipose_Tissue	Adrenal_Gland	Bladder	Blood	Blood_Vessel	Bone_Marrow	Brain	Breast	Cervix_Uteri	Colon	Esophagus	Fallopian_Tube	Heart	Kidney	Liver	Lung	Muscle	NA	Nerve	Ovary	Pancreas	Pituitary	Prostate	Salivary_Gland	Skin	Small_Intestine	Spleen	Stomach	Testis	Thyroid	Tissue	Uterus	Vagina
+CASQ2	regions=chr1:115717895-115718185,chr1:115718195-115725507	0	0	0	0	0	0	8	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+LATS1	regions=chr6:149680458-149681460,chr6:149681524-149683078	1	3	8	0	3	0	2	1	5	6	3	4	29	2	1	1	68	3	2	4	0	1	2	1	1	2	1	3	0	1	0	4	3
+PPP1R12A	regions=chr12:79776016-79777482,chr12:79777653-79778549	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	52	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0
+PTBP1	regions=chr19:805570-805831,chr19:805903-806407	0	0	1	0	0	0	19	0	0	1	0	1	0	0	0	0	3	0	0	0	0	1	0	0	0	0	0	0	0	0	0	1	0
+SBF1	regions=chr22:50466711-50466977,chr22:50467002-50467337	0	2	0	0	0	0	29	0	0	2	0	0	0	0	1	0	0	0	0	0	0	6	0	0	0	1	0	1	1	0	0	0	1
+SPAG1	regions=chr8:100220432-100223661,chr8:100223754-100225172	0	0	0	0	0	0	14	0	0	0	0	0	16	0	0	0	3	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0
+TAF1	regions=chrX:71454858-71455006,chrX:71456118-71458240	0	0	0	0	0	0	19	0	0	0	0	0	1	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+TAF4B	regions=chr18:26357795-26388110,chr18:26388170-26389844	14	14	12	9	11	14	38	17	0	12	11	9	7	10	21	10	6	4	12	10	16	17	10	12	11	13	10	13	6	8	0	8	9
