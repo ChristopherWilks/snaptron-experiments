@@ -32,6 +32,7 @@ import clsnapconf
 
 GROUP_COV_FUNC='coverage'
 PSI_FUNC='psi'
+APSI_FUNC='apsi'
 #splice event types
 #retained intron
 RI='ri'

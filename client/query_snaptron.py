@@ -40,7 +40,7 @@ csv.field_size_limit(sys.maxsize)
 compute_functions={snf.MATES_FUNC:(snf.sum_sample_coverage,snf.report_splice_mates),clsnaputil.PSI_FUNC:(snf.count_samples_per_group,snf.percent_spliced_in),snf.JIR_FUNC:(snf.count_samples_per_group,snf.junction_inclusion_ratio),snf.TRACK_EXONS_FUNC:(snf.track_exons,snf.filter_exons),snf.TISSUE_SPECIFICITY_FUNC:(snf.count_samples_per_group,snf.tissue_specificity),snf.SHARED_SAMPLE_COUNT_FUNC:(snf.count_samples_per_group,snf.report_shared_sample_counts),snf.INTERSECTION_FUNC:(None,None),snf.GROUP_COV_FUNC:(snf.count_samples_per_group,snf.group_coverage),None:(None,None)}
 
 
-def parse_query_params(args):
+def parse_query_params(args, dont_join_query_params=False):
     '''Determines whether the query was passed in via the command line
     or a file and handles the arguments appropriately'''
 
@@ -63,7 +63,10 @@ def parse_query_params(args):
             (query, endpoint, datasrc) = clsnaputil.parse_query_argument(args, record, creader.fieldnames, groups, groups_seen, inline_group=bulk, header=get_header)
             if datasrc is not None:
                 datasrcs.append(datasrc)
-            queries.append("&".join(query))
+            if dont_join_query_params:
+                queries.append(query)
+            else:
+                queries.append("&".join(query))
             if args.function is None:
                 get_header = False
     if len(datasrcs) == 0:
@@ -297,7 +300,10 @@ def main(args):
         process_bulk_queries(args)
         return
     #parse original set of queries
-    (query_params_per_region, groups, endpoint, datasrcs) = parse_query_params(args)
+    (query_params_per_region, groups, endpoint, datasrcs) = parse_query_params(args, dont_join_query_params=(args.function == clsnaputil.APSI_FUNC))
+    if args.function == clsnaputil.APSI_FUNC:
+        snf.process_apsi(args, query_params_per_region, groups, endpoint, datasrcs, iterator_map, local=args.local)
+        return
     #get original functions (if passed in)
     (count_function, summary_function) = compute_functions[args.function]
     #process original queries
@@ -318,11 +324,13 @@ def create_parser(disable_header=False):
     
     parser.add_argument('--bulk-query-file', metavar='/path/to/file_with_queries', type=str, default=None, help='Same format as --query-file but gets run with up to 50 queries at a time (better for lots of queries).  This is the path to a file with one query per line where a query is one or more of a region (HUGO genename or genomic interval) optionally with one or more filters and/or metadata contraints specified and/or contained/either/within flag(s) turned on')
     
+    parser.add_argument('--sample-group-file', metavar='/path/to/file_with_sample_groups.tsv', type=str, default=None, help='path to file with sample groupings, e.g. GTEx tissues or TCGA disease types')
+    
     parser.add_argument('--bulk-query-gzip', action='store_const', const=True, default=False, help='gzip bulk query output file')
 
     parser.add_argument('--bulk-query-stdout', action='store_const', const=True, default=False, help='dump output of a bulk query to STDOUT instead of writing to a file')
 
-    parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples: "jir", "psi", "ts", "ssc", "mates", and "exon"')
+    parser.add_argument('--function', metavar='jir', type=str, default=None, help='function to compute between specified groups of junctions ranked across samples: "jir", "psi", "apsi", "ts", "ssc", "mates", and "exon"')
 
     parser.add_argument('--tmpdir', metavar='/path/to/tmpdir', type=str, default=clsnapconf.TMPDIR, help='path to temporary storage for downloading and manipulating junction and sample records')
     
