@@ -55,11 +55,14 @@ def process_apsi(args, query_params_per_region, query_labels, endpoint, datasrcs
     groups_sorted = sorted(set(rids2groups.values()))
     sys.stdout.write("query_label\tquery\t%s\n" % ('\t'.join(groups_sorted)))
     for (qi,query_params) in enumerate(query_params_per_region):
+        original_query_string = '&'.join(query_params)
         query_label = query_labels[qi]
+        params_ = []
+        supporting_jx_regions = []
         for q in query_params:
             (k,v) = q.split('=')
-            params_ = []
-            supporting_jx_regions = []
+            if k == 'header':
+                continue
             if k == 'regions':
                 #multiple coordinate ranges are expected
                 #and assume they're in coordinate sorted order
@@ -68,74 +71,74 @@ def process_apsi(args, query_params_per_region, query_labels, endpoint, datasrcs
                 #and the end/start is the not-shared inclusion SS
             else:
                 params_.append(q)
-            #now create the actual queries we want to run
-            params = '&'.join(params_)
-            psis = []
-            for (i,region) in enumerate(supporting_jx_regions):
-                psis.append({})
-                #init the psis per query, per group, and per numerator/denominator (n/d)
-                for g in groups_sorted:
-                    psis[i][g] = {'n':0.0, 'd':0.0}
-                m = apsi_region_patt.search(region)
-                if m is None:
-                    sys.stderr.write("WARNING: region not in expected format for APSI function: %s, skipping\n" % region)
-                    continue
-                #main idea here: want to match a range of junctions that either:
-                #1) start with the given start coordinate and have any end OR (ODD)
-                #2) end with the given end coordinate and have any start (EVEN)
-                chrm = m.group(1)
-                start = m.group(2)
-                end = m.group(3)
-                either = 1
-                query_param_string = "regions=%s:%s-%s&either=%d" % (chrm, start, start, either)
-                inc_coord = end
-                inc_col = clsnapconf.INTERVAL_END_COL
-                #again, assume coordinate sorted input order
-                if i % 2 != 0:
-                    either = 2
-                    query_param_string = "regions=%s:%s-%s&either=%d" % (chrm, end, end, either)
-                    inc_coord = start
-                    inc_col = clsnapconf.INTERVAL_START_COL
-                if len(params_) > 0:
-                    query_param_string += "&%s" % (params_)
-                #run query
-                #process results looking for:
-                #1) the one inclusion junction which has a coordinate which matches the "inc_coord"
-                #these counts will go in both the denominator AND the numerator
-                #2) everything else for which the counts will go in the denominator only
-                #ASSUMES: 1) 1 datasrc 2) 1 endpoint (junctions)
-                #for (group_idx, query_param_string) in enumerate(query_params_per_region):
-                sIT = iterator_map[local](query_param_string, datasrcs[0], endpoint)
-                for record in sIT:
-                    fields = record.split('\t')
-                    #process record according to 
-                    for sample in fields[clsnapconf.SAMPLE_IDS_COL].split(',')[1:]:
-                        (rid,cov) = sample.split(':')
-                        cov = int(cov)
-                        if rid in rids2groups:
-                            g = rids2groups[rid]
-                            psis[i][g]['d'] += cov
-                            if fields[inc_col] == inc_coord:
-                                psis[i][g]['n'] += cov
-            #out region loop but still within same event
-            #now that we've processed the basic queries, we need to form the final PSIs
-            #assumes only 2 basic queries for now (inclusion left/right)
-            if len(psis[0]) == 0 or len(psis[1]) == 0:
-                sys.stderr.write("Bad APSI query row: %s, skipping\n" % (q))
-                continue
-            sys.stdout.write("%s\t%s" % (query_label,q))
+        #now create the actual queries we want to run
+        params_.append("header=0")
+        params = '&'.join(params_)
+        psis = []
+        for (i,region) in enumerate(supporting_jx_regions):
+            psis.append({})
+            #init the psis per query, per group, and per numerator/denominator (n/d)
             for g in groups_sorted:
-                #upstream psi
-                psi1 = 0.0
-                if g in psis[0] and psis[0][g]['d'] > 0:
-                    psi1 = psis[0][g]['n'] / float(psis[0][g]['d'])
-                #downstream psi
-                psi2 = 0.0
-                if g in psis[1] and psis[1][g]['d'] > 0:
-                    psi2 = psis[1][g]['n'] / float(psis[1][g]['d'])
-                psi = (psi1 + psi2)/2.0
-                sys.stdout.write("\t%d" % int(round(100*psi,0)))
-            sys.stdout.write('\n')
+                psis[i][g] = {'n':0.0, 'd':0.0}
+            m = apsi_region_patt.search(region)
+            if m is None:
+                sys.stderr.write("WARNING: region not in expected format for APSI function: %s, skipping\n" % region)
+                continue
+            #main idea here: want to match a range of junctions that either:
+            #1) start with the given start coordinate and have any end OR (ODD)
+            #2) end with the given end coordinate and have any start (EVEN)
+            chrm = m.group(1)
+            start = m.group(2)
+            end = m.group(3)
+            either = 1
+            query_param_string = "regions=%s:%s-%s&either=%d" % (chrm, start, start, either)
+            inc_coord = end
+            inc_col = clsnapconf.INTERVAL_END_COL
+            #again, assume coordinate sorted input order
+            if i % 2 != 0:
+                either = 2
+                query_param_string = "regions=%s:%s-%s&either=%d" % (chrm, end, end, either)
+                inc_coord = start
+                inc_col = clsnapconf.INTERVAL_START_COL
+            query_param_string += "&"+params
+            #run query
+            #process results looking for:
+            #1) the one inclusion junction which has a coordinate which matches the "inc_coord"
+            #these counts will go in both the denominator AND the numerator
+            #2) everything else for which the counts will go in the denominator only
+            #ASSUMES: 1) 1 datasrc 2) 1 endpoint (junctions)
+            #for (group_idx, query_param_string) in enumerate(query_params_per_region):
+            sIT = iterator_map[local](query_param_string, datasrcs[0], endpoint)
+            for record in sIT:
+                fields = record.split('\t')
+                #process record according to 
+                for sample in fields[clsnapconf.SAMPLE_IDS_COL].split(',')[1:]:
+                    (rid,cov) = sample.split(':')
+                    cov = int(cov)
+                    if rid in rids2groups:
+                        g = rids2groups[rid]
+                        psis[i][g]['d'] += cov
+                        if fields[inc_col] == inc_coord:
+                            psis[i][g]['n'] += cov
+        #out region loop but still within same event
+        #now that we've processed the basic queries, we need to form the final PSIs
+        #assumes only 2 basic queries for now (inclusion left/right)
+        if len(psis) < 2 or len(psis[0]) == 0 or len(psis[1]) == 0:
+            sys.stderr.write("Bad APSI query row: %s, skipping\n" % (original_query_string))
+            continue
+        sys.stdout.write("%s\t%s" % (query_label,original_query_string))
+        for g in groups_sorted:
+            #upstream psi
+            psi1 = 0.0
+            if g in psis[0] and psis[0][g]['d'] > 0:
+                psi1 = psis[0][g]['n'] / float(psis[0][g]['d'])
+            #downstream psi
+            psi2 = 0.0
+            if g in psis[1] and psis[1][g]['d'] > 0:
+                psi2 = psis[1][g]['n'] / float(psis[1][g]['d'])
+            psi = (psi1 + psi2)/2.0
+            sys.stdout.write("\t%d" % int(round(100*psi,0)))
+        sys.stdout.write('\n')
 
 
 def intersect_junctions(args, results, record, group, out_fh=None):
