@@ -42,7 +42,7 @@ DS_CT_H_B='ct_h_b'
 DS_CT_M_S='ct_m_s'
 DS_CT_M_B='ct_m_b'
 BASE_SAMPLE_ID_OFFSETS={DS_TCGA:59761,DS_GTEX:50099,DS_SRAV2:0,DS_SRAV1:0,DS_SUPERMOUSE:0,DS_MESA:0,DS_ENCODE:0}
-SERVICE_URL='http://snaptron.cs.jhu.edu'
+SERVICE_URL='https://snaptron.cs.jhu.edu'
 BUFFER_SIZE_BYTES=1024*1024
 CACHE_SAMPLE_METADTA=True
 #TODO use python tmp
